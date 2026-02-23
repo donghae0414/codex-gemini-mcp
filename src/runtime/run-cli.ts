@@ -1,6 +1,6 @@
 import { spawn } from "node:child_process";
 
-import { getDefaultTimeoutMs } from "../config.js";
+import { getDefaultTimeoutMs, getMaxOutputBytes } from "../config.js";
 import { logError, logResponse } from "../logger/index.js";
 import type { RuntimeLogContext } from "../types.js";
 
@@ -26,7 +26,38 @@ export function runCli(
 
     let stdout = "";
     let stderr = "";
+    let totalOutputBytes = 0;
     let settled = false;
+    const maxOutputBytes = getMaxOutputBytes();
+
+    const outputLimitMessage = `${command} output exceeded MCP_MAX_OUTPUT_BYTES=${maxOutputBytes} bytes`;
+
+    const appendChunk = (target: "stdout" | "stderr", chunk: Buffer): boolean => {
+      const remaining = maxOutputBytes - totalOutputBytes;
+      if (remaining <= 0) {
+        return true;
+      }
+
+      if (chunk.length <= remaining) {
+        const text = chunk.toString();
+        if (target === "stdout") {
+          stdout += text;
+        } else {
+          stderr += text;
+        }
+        totalOutputBytes += chunk.length;
+        return false;
+      }
+
+      const clipped = chunk.subarray(0, remaining).toString();
+      if (target === "stdout") {
+        stdout += clipped;
+      } else {
+        stderr += clipped;
+      }
+      totalOutputBytes += remaining;
+      return true;
+    };
 
     const rejectWithLog = (errorCode: string, message: string, stderrText?: string): void => {
       if (settled) {
@@ -74,11 +105,27 @@ export function runCli(
     }, timeoutMs);
 
     child.stdout.on("data", (chunk: Buffer) => {
-      stdout += chunk.toString();
+      const exceeded = appendChunk("stdout", chunk);
+      if (!exceeded) {
+        return;
+      }
+      try {
+        child.kill("SIGTERM");
+      } catch {
+      }
+      rejectWithLog("CLI_OUTPUT_LIMIT_EXCEEDED", outputLimitMessage, stderr);
     });
 
     child.stderr.on("data", (chunk: Buffer) => {
-      stderr += chunk.toString();
+      const exceeded = appendChunk("stderr", chunk);
+      if (!exceeded) {
+        return;
+      }
+      try {
+        child.kill("SIGTERM");
+      } catch {
+      }
+      rejectWithLog("CLI_OUTPUT_LIMIT_EXCEEDED", outputLimitMessage, stderr);
     });
 
     child.on("error", (error) => {

@@ -2,7 +2,13 @@ import { z } from "zod";
 
 const BaseAskSchema = z.object({
   prompt: z.string().min(1),
-  model: z.string().min(1).optional(),
+  model: z
+    .string()
+    .trim()
+    .min(1)
+    .max(128)
+    .regex(/^[A-Za-z0-9][A-Za-z0-9._:-]*$/)
+    .optional(),
   timeout_ms: z
     .number()
     .int()

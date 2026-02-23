@@ -17,7 +17,10 @@
 - 완료: Phase D 구조화 로깅(JSONL 파일 sink + request/response/error 이벤트)
 - 완료: request_id <-> jobId 상관관계 필드 추가 (`job_id` in JSONL, `requestId` in status/content)
 - 완료: foreground/background timeout + error 케이스 실호출 검증 (codex/gemini)
-- 미완료: Phase E 안정성 강화 (부분 진행: 에러코드 기반 로깅/검증)
+- 완료: Phase E 핵심 안정성 강화
+  - 모델명 regex 검증 적용(`src/tools/schema.ts`)
+  - foreground/background output cap 적용(`MCP_MAX_OUTPUT_BYTES`, 기본 1048576)
+  - runtime 에러코드 표준화(`CLI_NOT_FOUND`/`CLI_TIMEOUT`/`CLI_NON_ZERO_EXIT`/`CLI_OUTPUT_LIMIT_EXCEEDED`)
 
 ## 1. 목적과 의사결정
 
@@ -48,7 +51,7 @@
 
 문제 요약:
 
-- provider 분리/server 분리, background/job, 구조화 로깅은 완료. 안정성 강화(Phase E)가 미완료
+- provider 분리/server 분리, background/job, 구조화 로깅, Phase E 핵심 안정화까지 완료
 - 테스트 단위 분리가 어려움
 - 향후 tool 추가 시 동일 패턴 복붙 유도
 
@@ -208,15 +211,15 @@ src/
 - `spawn` 실행
 - timeout 강제 종료
 - stdout/stderr 수집
-- (Phase E 예정) output size cap + truncation
-- (Phase E 예정) 에러 정규화
+- output size cap 강제 적용(`MCP_MAX_OUTPUT_BYTES`, foreground/background 공통)
+- 에러 정규화(표준 코드 기반)
 
 에러 분류:
 
 - `CLI_NOT_FOUND`
 - `CLI_TIMEOUT`
 - `CLI_NON_ZERO_EXIT`
-- `CLI_OUTPUT_LIMIT`
+- `CLI_OUTPUT_LIMIT_EXCEEDED`
 
 ### 5.6 `runtime/run-cli-background.ts`
 
@@ -500,8 +503,8 @@ error 필드:
 | 파일 기반 로그 분리 저장 | 포함 | `.codex-gemini-mcp/logs/mcp-YYYY-MM-DD.jsonl` |
 | background jobs (`wait/check/kill/list`) | 포함 | oh-my-claudecode 사용성 반영 |
 | content/status 파일 영속화 | 포함 | background 추적 필수 기반 |
-| 모델명 검증(regex) | 미포함(Phase E 예정) | 스키마 검증 미반영 |
-| timeout/에러 정규화 | 부분 포함 | `CLI_NOT_FOUND`/`CLI_TIMEOUT`/`CLI_NON_ZERO_EXIT` 코드 로깅 및 에러 반환 구현, output cap/모델 regex는 미구현 |
+| 모델명 검증(regex) | 포함 | `model` 입력에 regex/길이 제한 적용 |
+| timeout/에러 정규화 | 포함 | `CLI_NOT_FOUND`/`CLI_TIMEOUT`/`CLI_NON_ZERO_EXIT`/`CLI_OUTPUT_LIMIT_EXCEEDED` 코드 기반 처리 |
 | Codex JSONL 파싱(`--json`) | 미포함 | 현재 foreground는 `stdout.trim()` 사용 |
 | fallback chain | 보류 | 단순성 우선 |
 | SQLite Job DB | 제외 | 현재 목표와 불일치 |
@@ -577,25 +580,26 @@ error 필드:
 
 ### Phase E - 안정성 강화(경량)
 
-현재 상태: **부분 진행**
+현재 상태: **완료 (핵심 항목)**
 
 1. 모델명 검증(regex)
 2. output cap/truncation
-3. ENOENT/timeout/non-zero exit 에러 메시지 표준화
+3. ENOENT/timeout/non-zero exit/output-limit 에러 코드 표준화
 
-반영된 항목(일부):
+반영된 항목:
 
-- `CLI_NOT_FOUND` / `CLI_TIMEOUT` / `CLI_NON_ZERO_EXIT` 코드 기반 에러 로깅
-- foreground/background timeout/error 경로 실호출 검증 완료
+- `src/tools/schema.ts`: `model` 입력 regex/길이 제한 적용
+- `src/runtime/run-cli.ts`, `src/runtime/run-cli-background.ts`: `MCP_MAX_OUTPUT_BYTES` cap 강제
+- `CLI_NOT_FOUND` / `CLI_TIMEOUT` / `CLI_NON_ZERO_EXIT` / `CLI_OUTPUT_LIMIT_EXCEEDED` 코드 기반 로깅/에러 반환
 
 완료 기준:
 
-- 실패 케이스에서 사용자 친화 에러 반환
+- 실패 케이스에서 일관된 에러 코드와 메시지 반환
 
 ### 다음 진행 단계 (권장 순서)
 
-1. **Phase E 마감**: 에러 표준화/출력 cap/모델명 검증 순으로 안정성 강화
-2. **문서 동기화**: README의 tool surface/background 설명을 현재 구현과 일치시키기
+1. **검증 자동화 보강**: 핵심 경로 smoke test/회귀 테스트 추가
+2. **문서 고도화**: README 검증 절차와 운영 가이드 보강
 
 ---
 

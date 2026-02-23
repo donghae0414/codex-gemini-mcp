@@ -1,10 +1,10 @@
 # PROJECT KNOWLEDGE BASE
 
-**Generated:** 2026-02-23T17:15:00+09:00
+**Generated:** 2026-02-24T22:10:00+09:00
 **Project:** codex-gemini-mcp-sample
 
 ## OVERVIEW
-Minimal TypeScript MCP server. Forwards prompts to local `codex` and `gemini` CLIs through provider-specific tools. Phase C first pass is applied (background execution + job management tools).
+Minimal TypeScript MCP server. Forwards prompts to local `codex` and `gemini` CLIs through provider-specific tools. Phase E core hardening is applied (model validation + output cap + standardized runtime error codes).
 
 ## STRUCTURE
 ```text
@@ -40,6 +40,7 @@ Minimal TypeScript MCP server. Forwards prompts to local `codex` and `gemini` CL
 - Log only via `console.error` (stdout is MCP protocol channel).
 - Background jobs persist status in `.codex-gemini-mcp/jobs` and prompts/responses in `.codex-gemini-mcp/prompts`.
 - Default CLI timeout is 600000ms (10 minutes).
+- Default max output is 1048576 bytes (1 MiB), enforced across foreground/background runtime.
 
 ## ANTI-PATTERNS
 - Do not print debug logs to stdout.
