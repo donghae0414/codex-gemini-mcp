@@ -27,7 +27,7 @@
 
 ## 2. 현재 상태(As-Is)와 문제점
 
-기준: `src/index.ts` + 분리 모듈(`providers/`, `mcp/` 포함)
+기준: provider 분리 엔트리(`src/mcp/*-standalone-server.ts`) + 분리 모듈(`providers/`, `mcp/` 포함)
 
 - 이미 `ask_codex`, `ask_gemini`, 공통 `runCli`가 동작 중
 - `AskSchema`는 `src/tools/schema.ts`, `AskInput`은 `src/types.ts`, `runCli`는 `src/runtime/run-cli.ts`로 분리 완료
@@ -503,7 +503,7 @@ error 필드:
    - 완료: `types.ts`, `tools/schema.ts`, `providers/*`, `runtime/run-cli.ts`
 2. `mcp/codex-server.ts`, `mcp/gemini-server.ts`와 standalone entry 파일 생성 (완료)
 3. 기존 동작 동일성 확인
-   - 완료: `ask_codex`/`ask_gemini` MCP 실호출 확인 (통합 엔트리 + provider 분리 엔트리)
+   - 완료: `ask_codex`/`ask_gemini` MCP 실호출 확인 (provider 분리 엔트리)
 
 완료 기준:
 

@@ -6,7 +6,6 @@
 ## WHERE TO LOOK
 | Task | Location | Notes |
 |------|----------|-------|
-| Combined server bootstrap | `src/index.ts` | backward-compatible combined entry |
 | Codex standalone bootstrap | `src/mcp/codex-standalone-server.ts` | codex-only stdio server |
 | Gemini standalone bootstrap | `src/mcp/gemini-standalone-server.ts` | gemini-only stdio server |
 | Input validation | `src/tools/schema.ts` | `AskSchema` (zod) |
@@ -23,5 +22,5 @@
 
 ## ANTI-PATTERNS
 - No provider-specific business logic beyond argument mapping.
-- No persistence side effects in `src/index.ts`.
+- No persistence side effects in standalone entry files.
 - No mixed stdout logging.

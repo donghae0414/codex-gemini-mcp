@@ -1,8 +1,12 @@
 {
   "mcpServers": {
-    "codexGemini": {
+    "codex-mcp": {
       "command": "node",
-      "args": ["./dist/index.js"]
+      "args": ["./dist/mcp/codex-standalone-server.js"]
+    },
+    "gemini-mcp": {
+      "command": "node",
+      "args": ["./dist/mcp/gemini-standalone-server.js"]
     }
   }
 }

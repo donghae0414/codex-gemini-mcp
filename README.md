@@ -20,13 +20,15 @@
 ```bash
 npm install
 npm run build
-npm start
+npm run start:codex
+npm run start:gemini
 ```
 
 개발 모드:
 
 ```bash
-npm run dev
+npm run dev:codex
+npm run dev:gemini
 ```
 
 ## Example `.mcp.json`
@@ -71,7 +73,6 @@ npm run dev
 ## Current Status
 
 - MCP 등록 엔트리: `dist/mcp/codex-standalone-server.js`, `dist/mcp/gemini-standalone-server.js`
-- 호환 엔트리 유지: `dist/index.js` (기존 `codexGemini` 단일 서버)
 - 검증 완료: `ask_codex`, `ask_gemini` 도구 실호출 성공
 - 아직 미구현: background job tools
 

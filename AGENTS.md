@@ -10,15 +10,12 @@ Minimal TypeScript MCP server. Forwards prompts to local `codex` and `gemini` CL
 ```text
 ./
 ├── src/              # MCP server implementation
-│   ├── index.ts      # stdio entry + tool registration
 │   ├── mcp/          # provider-specific MCP servers + standalone entries
 │   ├── providers/    # provider-specific CLI argument builders
 │   ├── types.ts      # shared input types
 │   ├── tools/        # zod schemas
 │   └── runtime/      # CLI execution runtime
 ├── README.md         # quick start
-├── PROJECT.md        # concise architecture
-├── TASKS.md          # task list
 └── MCP_REVERSE_ENGINEERING.md  # reference-only, larger design
 ```
 
@@ -49,7 +46,8 @@ Minimal TypeScript MCP server. Forwards prompts to local `codex` and `gemini` CL
 npm install
 npm run typecheck
 npm run build
-npm start
+npm run start:codex
+npm run start:gemini
 ```
 
 ## NOTES
