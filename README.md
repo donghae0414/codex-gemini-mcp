@@ -54,21 +54,37 @@ npm run dev:gemini
 
 - `prompt` (string, required)
 - `model` (string, optional)
-- `timeout_ms` (number, optional, default 600000, max 600000)
+- `timeout_ms` (number, optional, default 600000)
+  - long-running task는 `300000` 이상(5분 이상) 권장
 - `working_directory` (string, optional)
 
 ### ask_gemini
 
 - `prompt` (string, required)
 - `model` (string, optional)
-- `timeout_ms` (number, optional, default 600000, max 600000)
+- `timeout_ms` (number, optional, default 600000)
+  - long-running task는 `300000` 이상(5분 이상) 권장
 - `working_directory` (string, optional)
 
 ## Runtime Notes
 
 - `ask_codex`: `codex exec --ephemeral` 호출
 - `ask_gemini`: `gemini --prompt <text>` 호출
-- `timeout_ms` 미지정 시 기본값은 600000ms(10분)
+- 모델 선택 우선순위: `request.model > env default > hardcoded default`
+  - codex env: `MCP_CODEX_DEFAULT_MODEL` (기본값: `gpt-5.3-codex`)
+  - gemini env: `MCP_GEMINI_DEFAULT_MODEL` (기본값: `gemini-3-pro-preview`)
+- `timeout_ms` 미지정 시 기본값은 `MCP_CLI_TIMEOUT_MS` 또는 600000ms(10분)
+
+## Environment Variables
+
+- `MCP_CODEX_DEFAULT_MODEL`: codex 기본 모델
+- `MCP_GEMINI_DEFAULT_MODEL`: gemini 기본 모델
+- `MCP_CLI_TIMEOUT_MS`: 기본 CLI timeout(ms)
+- `MCP_MAX_OUTPUT_BYTES`: 최대 출력 바이트(cap, 향후 runtime 확장용)
+- `MCP_RUNTIME_DIR`: 런타임 파일 기본 루트(`.codex-gemini-mcp`)
+- `MCP_LOG_DIR`: 로그 경로 override
+- `MCP_LOG_PREVIEW`: 로그 preview 저장 여부 (`1`이면 활성화)
+- `MCP_LOG_FULL_TEXT`: 전체 텍스트 로그 여부 (`1`이면 활성화)
 
 ## Current Status
 

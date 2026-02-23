@@ -3,8 +3,10 @@
 ## 0. 진행 현황 스냅샷 (2026-02-23)
 
 - 완료: Phase A 1차 구조 분리 (`src/types.ts`, `src/tools/schema.ts`, `src/runtime/run-cli.ts`)
+- 완료: Phase B 모델 정책 반영 (`src/config.ts`, `resolveModel()`, env 기반 기본값)
 - 완료: MCP SDK deprecated API 제거 (`server.tool` -> `server.registerTool`)
 - 완료: 기본 CLI timeout 10분 적용 (`600000ms`)
+- 완료: timeout 스키마 정책 정리 (미지정 시 10분 기본값, `timeout_ms >= 300000` 권장 문구 반영)
 - 완료: MCP 실호출 검증 (`ask_codex`, `ask_gemini`)
 - 완료: Gemini 호출 인자 `--prompt` 사용(현재 설치된 Gemini CLI 규격 호환)
 - 완료: provider 분리 서버 엔트리(`codex-mcp`, `gemini-mcp`) 추가
@@ -32,13 +34,13 @@
 - 이미 `ask_codex`, `ask_gemini`, 공통 `runCli`가 동작 중
 - `AskSchema`는 `src/tools/schema.ts`, `AskInput`은 `src/types.ts`, `runCli`는 `src/runtime/run-cli.ts`로 분리 완료
 - MCP tool 등록은 `server.registerTool(...)`로 교체 완료
-- `model` 파라미터는 존재하나 default model 전략 부재
+- `model` 기본값 전략은 `config.ts`로 중앙화 완료 (`request.model > env default > hardcoded default`)
 - 로깅은 부트 로그 수준이며 요청/응답/실행시간 트래킹이 없음
-- provider별 인자 규칙은 `src/providers/*`로 분리 완료. 다만 모델 정책(`config.ts`)과 background/job/logging 계층은 아직 미구현
+- provider별 인자 규칙은 `src/providers/*`로 분리 완료. background/job/logging 계층은 아직 미구현
 
 문제 요약:
 
-- provider 분리/server 분리는 완료됐지만 background/job/logging/모델정책이 미완료
+- provider 분리/server 분리는 완료됐지만 background/job/logging이 미완료
 - 테스트 단위 분리가 어려움
 - 향후 tool 추가 시 동일 패턴 복붙 유도
 
@@ -155,6 +157,7 @@ src/
 - `getDefaultModel(provider: Provider): string`
 - `resolveModel(provider: Provider, requestedModel?: string): string`
 - `getDefaultTimeoutMs(): number`
+- `getMaxOutputBytes(): number`
 - `getLoggingFlags(): { preview: boolean; fullText: boolean }`
 - `getLogDir(cwd?: string): string`
 - `getRuntimeDir(cwd?: string): string`
@@ -306,7 +309,8 @@ src/
 - `prompt` (required)
 - `model` (optional)
 - `reasoning_effort` (optional: `minimal` | `low` | `medium` | `high` | `xhigh`)
-- `timeout_ms` (optional, 1..600000)
+- `timeout_ms` (optional, positive integer, 기본값: `MCP_CLI_TIMEOUT_MS` 또는 `600000`)
+  - 권장: long-running task는 `300000` 이상(5분 이상)
 - `working_directory` (optional)
 - `background` (optional, default: `false`)
 
@@ -324,7 +328,8 @@ src/
 
 - `prompt` (required)
 - `model` (optional)
-- `timeout_ms` (optional, 1..600000)
+- `timeout_ms` (optional, positive integer, 기본값: `MCP_CLI_TIMEOUT_MS` 또는 `600000`)
+  - 권장: long-running task는 `300000` 이상(5분 이상)
 - `working_directory` (optional)
 - `background` (optional, default: `false`)
 - `reasoning_effort`는 지원하지 않음(입력 스키마에서 거부)
@@ -512,11 +517,18 @@ error 필드:
 
 ### Phase B - 모델 정책 추가
 
-현재 상태: **미시작**
+현재 상태: **완료**
 
 1. `config.ts` 추가
 2. `resolveModel()` 적용
 3. README에 우선순위 문서화
+
+반영 내용:
+
+- `src/config.ts` 추가: model/timeout/env 경로 정책 중앙화
+- `src/providers/codex.ts`, `src/providers/gemini.ts`에서 `resolveModel()` 적용
+- `src/runtime/run-cli.ts` 기본 timeout을 `getDefaultTimeoutMs()`로 연결
+- README에 model 우선순위/환경변수 문서화
 
 완료 기준:
 
@@ -568,11 +580,10 @@ error 필드:
 
 ### 다음 진행 단계 (권장 순서)
 
-1. **Phase B 착수**: `src/config.ts`를 추가해 `resolveModel()`/기본 timeout/env 정책을 단일 진입점으로 확정
-2. **Phase B 반영 연결**: `src/providers/*` 또는 tool handler에서 `request.model > env default > hardcoded default` 우선순위 적용
-3. **Phase C 착수**: `runtime/run-cli-background.ts`, `prompt-store.ts`, `job-management.ts` 최소 골격 구현
-4. **도구 확장**: `wait_for_job`, `check_job_status`, `kill_job`, `list_jobs`를 provider 서버별로 등록
-5. **Phase D/E 순차 적용**: 구조화 로깅(JSONL) -> 에러 표준화/출력 cap/모델명 검증 순으로 마감
+1. **Phase C 착수**: `runtime/run-cli-background.ts`, `prompt-store.ts`, `job-management.ts` 최소 골격 구현
+2. **도구 확장**: `wait_for_job`, `check_job_status`, `kill_job`, `list_jobs`를 provider 서버별로 등록
+3. **Phase D 적용**: 구조화 로깅(JSONL) 구현 + stdout 오염 방지 검증
+4. **Phase E 마감**: 에러 표준화/출력 cap/모델명 검증 순으로 안정성 강화
 
 ---
 

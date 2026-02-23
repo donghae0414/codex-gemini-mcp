@@ -1,3 +1,5 @@
+export type Provider = "codex" | "gemini";
+
 export interface AskInput {
   prompt: string;
   model?: string;

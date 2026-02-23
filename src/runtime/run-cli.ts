@@ -1,9 +1,11 @@
 import { spawn } from "node:child_process";
 
+import { getDefaultTimeoutMs } from "../config.js";
+
 export function runCli(
   command: string,
   args: string[],
-  timeoutMs = 600000,
+  timeoutMs = getDefaultTimeoutMs(),
   cwd?: string,
 ): Promise<string> {
   return new Promise((resolve, reject) => {
