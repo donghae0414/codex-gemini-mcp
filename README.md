@@ -56,10 +56,11 @@ npm run dev:gemini
 - `prompt` (string, required)
 - `model` (string, optional)
 - `timeout_ms` (number, optional, default 600000)
-  - long-running task는 `300000` 이상(5분 이상) 권장
+  - `300000` 미만이면 에러 반환 + 재시도 가이드 제공
+  - long-running task는 `1800000`(30분) 권장
 - `model`은 `[A-Za-z0-9][A-Za-z0-9._:-]*` 패턴(최대 128자)만 허용
 - `working_directory` (string, optional)
-- `background` (boolean, optional, default `false`)
+- `background` (boolean, optional, default `true`)
 - `reasoning_effort` (string, optional: `minimal` | `low` | `medium` | `high` | `xhigh`)
 
 ### ask_gemini
@@ -67,10 +68,11 @@ npm run dev:gemini
 - `prompt` (string, required)
 - `model` (string, optional)
 - `timeout_ms` (number, optional, default 600000)
-  - long-running task는 `300000` 이상(5분 이상) 권장
+  - `300000` 미만이면 에러 반환 + 재시도 가이드 제공
+  - long-running task는 `1800000`(30분) 권장
 - `model`은 `[A-Za-z0-9][A-Za-z0-9._:-]*` 패턴(최대 128자)만 허용
 - `working_directory` (string, optional)
-- `background` (boolean, optional, default `false`)
+- `background` (boolean, optional, default `true`)
 
 ### wait_for_job
 
@@ -95,6 +97,7 @@ npm run dev:gemini
 
 - `ask_codex`: `codex exec --ephemeral` 호출 (`reasoning_effort` 지정 시 `-c model_reasoning_effort=...` 추가)
 - `ask_gemini`: `gemini --prompt <text>` 호출
+- `ask_*`는 `background` 미지정 시 기본 `true`로 실행
 - `background: true` 호출 시 `.codex-gemini-mcp/jobs`, `.codex-gemini-mcp/prompts`에 상태/입출력(content) 파일 저장
 - 구조화 로깅(JSONL): `.codex-gemini-mcp/logs/mcp-YYYY-MM-DD.jsonl`
   - 기본: 메타데이터만 저장 (본문 미저장)
@@ -105,6 +108,7 @@ npm run dev:gemini
   - codex env: `MCP_CODEX_DEFAULT_MODEL` (기본값: `gpt-5.3-codex`)
   - gemini env: `MCP_GEMINI_DEFAULT_MODEL` (기본값: `gemini-3-pro-preview`)
 - `timeout_ms` 미지정 시 기본값은 `MCP_CLI_TIMEOUT_MS` 또는 600000ms(10분)
+- `timeout_ms < 300000` 요청은 거부되며, 재시도 가이드가 반환됨
 - `stdout + stderr` 합산 출력이 `MCP_MAX_OUTPUT_BYTES`를 넘으면 `CLI_OUTPUT_LIMIT_EXCEEDED`로 종료
 
 ## Logging by `background`

@@ -14,9 +14,12 @@ const BaseAskSchema = z.object({
     .int()
     .positive()
     .optional()
-    .describe("CLI timeout in milliseconds (default 600000; >=300000 recommended)"),
+    .describe("CLI timeout in milliseconds (default 600000; must be >=300000; 1800000 recommended for long-running tasks)"),
   working_directory: z.string().min(1).optional(),
-  background: z.boolean().optional(),
+  background: z
+    .boolean()
+    .optional()
+    .describe("Run as background job (default true; recommended for long-running tasks)"),
 });
 
 export const AskCodexSchema = BaseAskSchema.extend({
