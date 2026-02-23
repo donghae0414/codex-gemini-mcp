@@ -7,6 +7,8 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "start": "node dist/index.js",
+    "start:codex": "node dist/mcp/codex-standalone-server.js",
+    "start:gemini": "node dist/mcp/gemini-standalone-server.js",
     "dev": "tsx src/index.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },

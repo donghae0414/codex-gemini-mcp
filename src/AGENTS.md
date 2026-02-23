@@ -1,14 +1,16 @@
 # SRC KNOWLEDGE BASE
 
 ## OVERVIEW
-`src/` contains the complete MCP runtime for this minimal sample. Core concerns are partially split (`types`, `tools/schema`, `runtime/run-cli`) while server bootstrap remains in `src/index.ts`.
+`src/` contains the complete MCP runtime for this minimal sample. Provider-specific server entries are split under `src/mcp/` and CLI mapping is split under `src/providers/`.
 
 ## WHERE TO LOOK
 | Task | Location | Notes |
 |------|----------|-------|
-| Server bootstrap | `src/index.ts` | `Server` + `StdioServerTransport` |
+| Combined server bootstrap | `src/index.ts` | backward-compatible combined entry |
+| Codex standalone bootstrap | `src/mcp/codex-standalone-server.ts` | codex-only stdio server |
+| Gemini standalone bootstrap | `src/mcp/gemini-standalone-server.ts` | gemini-only stdio server |
 | Input validation | `src/tools/schema.ts` | `AskSchema` (zod) |
-| Tool behavior | `src/index.ts` | `askCodex`, `askGemini` |
+| Provider handlers | `src/providers/codex.ts`, `src/providers/gemini.ts` | `askCodex`, `askGemini` |
 | Process handling | `src/runtime/run-cli.ts` | `runCli` |
 | Shared types | `src/types.ts` | `AskInput` |
 

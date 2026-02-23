@@ -34,9 +34,13 @@ npm run dev
 ```json
 {
   "mcpServers": {
-    "codexGemini": {
+    "codex-mcp": {
       "command": "node",
-      "args": ["/absolute/path/to/codex-gemini-mcp/dist/index.js"]
+      "args": ["/absolute/path/to/codex-gemini-mcp/dist/mcp/codex-standalone-server.js"]
+    },
+    "gemini-mcp": {
+      "command": "node",
+      "args": ["/absolute/path/to/codex-gemini-mcp/dist/mcp/gemini-standalone-server.js"]
     }
   }
 }
@@ -66,9 +70,10 @@ npm run dev
 
 ## Current Status
 
-- MCP 등록 엔트리: `dist/index.js` (단일 서버)
+- MCP 등록 엔트리: `dist/mcp/codex-standalone-server.js`, `dist/mcp/gemini-standalone-server.js`
+- 호환 엔트리 유지: `dist/index.js` (기존 `codexGemini` 단일 서버)
 - 검증 완료: `ask_codex`, `ask_gemini` 도구 실호출 성공
-- 아직 미구현: provider 분리 서버(`codex-mcp`, `gemini-mcp`) 및 background job tools
+- 아직 미구현: background job tools
 
 ## Scope (deliberately minimal)
 

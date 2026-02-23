@@ -1,8 +1,8 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { runCli } from "./runtime/run-cli.js";
+import { askCodex } from "./providers/codex.js";
+import { askGemini } from "./providers/gemini.js";
 import { AskSchema } from "./tools/schema.js";
-import type { AskInput } from "./types.js";
 
 const server = new McpServer({
   name: "codex-gemini-mcp",
@@ -42,23 +42,6 @@ server.registerTool(
     }
   },
 );
-
-function askCodex(input: AskInput): Promise<string> {
-  const args = ["exec", "--ephemeral"];
-  if (input.model) {
-    args.push("--model", input.model);
-  }
-  args.push(input.prompt);
-  return runCli("codex", args, input.timeout_ms, input.working_directory);
-}
-
-function askGemini(input: AskInput): Promise<string> {
-  const args = ["--prompt", input.prompt];
-  if (input.model) {
-    args.push("--model", input.model);
-  }
-  return runCli("gemini", args, input.timeout_ms, input.working_directory);
-}
 
 async function main() {
   const transport = new StdioServerTransport();
