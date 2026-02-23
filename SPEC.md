@@ -134,6 +134,7 @@ src/
 - `interface RunCliSuccess { stdout: string; stderr: string; exitCode: 0; durationMs: number; truncated: boolean }`
 - `type JobState = "spawned" | "running" | "completed" | "failed" | "timeout"`
 - `interface JobStatus { provider: Provider; jobId: string; status: JobState; pid?: number; promptFile: string; responseFile: string; model: string; spawnedAt: string; completedAt?: string; error?: string; killedByUser?: boolean }`
+- 네이밍 규칙: MCP tool 입력 파라미터는 `snake_case`(`job_id`, `status_filter`)를 유지하고, `JobStatus`/status JSON/metadata payload 키는 `camelCase`(`jobId`, `promptFile`)를 사용한다.
 
 ### 5.2 `config.ts`
 
@@ -302,7 +303,7 @@ src/
 1. `resolveModel("codex", model)`
 2. provider args 생성
 3. `background`가 `false`면 `runCli` 실행 (prompt는 stdin write)
-4. `background`가 `true`면 `runCliBackground` 실행 후 `job_id`/경로 메타데이터 반환
+4. `background`가 `true`면 `runCliBackground` 실행 후 `jobId`/경로 메타데이터 반환
 5. foreground일 때 Codex `--json` 출력(JSONL)에서 텍스트 이벤트를 파싱해 최종 text 반환
 
 ### 6.2 `ask_gemini`
@@ -321,7 +322,7 @@ src/
 1. `resolveModel("gemini", model)`
 2. provider args 생성
 3. `background`가 `false`면 `runCli` 실행 (prompt는 stdin write)
-4. `background`가 `true`면 `runCliBackground` 실행 후 `job_id`/경로 메타데이터 반환
+4. `background`가 `true`면 `runCliBackground` 실행 후 `jobId`/경로 메타데이터 반환
 5. foreground일 때 `stdout.trim()`을 응답으로 사용 (별도 JSON output-format 파싱 없음)
 
 참고:
@@ -393,11 +394,11 @@ src/
 
 - MCP `content[0].text`에 최소 필드 포함 JSON 문자열 반환:
   - `provider`
-  - `job_id`
+  - `jobId`
   - `status` (`spawned`)
-  - `prompt_file`
-  - `response_file`
-  - `status_file`
+  - `promptFile`
+  - `responseFile`
+  - `statusFile`
 
 `wait_for_job` 성공(terminal):
 
@@ -513,7 +514,7 @@ error 필드:
 
 완료 기준:
 
-- background 호출 시 `job_id` 반환
+- background 호출 시 `jobId` 반환
 - `wait/check/kill/list` 도구 정상 동작
 - status 파일 상태 전이(`spawned -> running -> terminal`) 검증
 
