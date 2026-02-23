@@ -3,15 +3,15 @@
   "version": "0.1.0",
   "description": "Minimal TypeScript MCP server that proxies prompts to Codex and Gemini CLI",
   "type": "module",
-  "main": "dist/mcp/codex-standalone-server.js",
+  "main": "dist/mcp/codex-stdio-entry.js",
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "start": "node dist/mcp/codex-standalone-server.js",
-    "start:codex": "node dist/mcp/codex-standalone-server.js",
-    "start:gemini": "node dist/mcp/gemini-standalone-server.js",
-    "dev": "tsx src/mcp/codex-standalone-server.ts",
-    "dev:codex": "tsx src/mcp/codex-standalone-server.ts",
-    "dev:gemini": "tsx src/mcp/gemini-standalone-server.ts",
+    "start": "node dist/mcp/codex-stdio-entry.js",
+    "start:codex": "node dist/mcp/codex-stdio-entry.js",
+    "start:gemini": "node dist/mcp/gemini-stdio-entry.js",
+    "dev": "tsx src/mcp/codex-stdio-entry.ts",
+    "dev:codex": "tsx src/mcp/codex-stdio-entry.ts",
+    "dev:gemini": "tsx src/mcp/gemini-stdio-entry.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "keywords": [

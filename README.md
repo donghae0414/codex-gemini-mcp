@@ -38,11 +38,11 @@ npm run dev:gemini
   "mcpServers": {
     "codex-mcp": {
       "command": "node",
-      "args": ["/absolute/path/to/codex-gemini-mcp/dist/mcp/codex-standalone-server.js"]
+      "args": ["/absolute/path/to/codex-gemini-mcp/dist/mcp/codex-stdio-entry.js"]
     },
     "gemini-mcp": {
       "command": "node",
-      "args": ["/absolute/path/to/codex-gemini-mcp/dist/mcp/gemini-standalone-server.js"]
+      "args": ["/absolute/path/to/codex-gemini-mcp/dist/mcp/gemini-stdio-entry.js"]
     }
   }
 }
@@ -72,7 +72,7 @@ npm run dev:gemini
 
 ## Current Status
 
-- MCP 등록 엔트리: `dist/mcp/codex-standalone-server.js`, `dist/mcp/gemini-standalone-server.js`
+- MCP 등록 엔트리: `dist/mcp/codex-stdio-entry.js`, `dist/mcp/gemini-stdio-entry.js`
 - 검증 완료: `ask_codex`, `ask_gemini` 도구 실호출 성공
 - 아직 미구현: background job tools
 

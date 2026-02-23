@@ -10,7 +10,7 @@ Minimal TypeScript MCP server. Forwards prompts to local `codex` and `gemini` CL
 ```text
 ./
 ├── src/              # MCP server implementation
-│   ├── mcp/          # provider-specific MCP servers + standalone entries
+│   ├── mcp/          # provider-specific MCP servers + stdio entry files
 │   ├── providers/    # provider-specific CLI argument builders
 │   ├── types.ts      # shared input types
 │   ├── tools/        # zod schemas
@@ -24,7 +24,7 @@ Minimal TypeScript MCP server. Forwards prompts to local `codex` and `gemini` CL
 |------|----------|-------|
 | Codex MCP server | `src/mcp/codex-server.ts` | `createCodexServer()` |
 | Gemini MCP server | `src/mcp/gemini-server.ts` | `createGeminiServer()` |
-| Standalone entries | `src/mcp/*-standalone-server.ts` | stdio transport entrypoint |
+| Stdio entries | `src/mcp/*-stdio-entry.ts` | stdio transport entrypoint |
 | Input validation schema | `src/tools/schema.ts` | `AskSchema` |
 | Provider CLI mapping | `src/providers/*.ts` | `askCodex`, `askGemini` |
 | CLI execution | `src/runtime/run-cli.ts` | `runCli` helper |

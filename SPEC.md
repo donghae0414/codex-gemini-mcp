@@ -27,7 +27,7 @@
 
 ## 2. 현재 상태(As-Is)와 문제점
 
-기준: provider 분리 엔트리(`src/mcp/*-standalone-server.ts`) + 분리 모듈(`providers/`, `mcp/` 포함)
+기준: provider 분리 엔트리(`src/mcp/*-stdio-entry.ts`) + 분리 모듈(`providers/`, `mcp/` 포함)
 
 - 이미 `ask_codex`, `ask_gemini`, 공통 `runCli`가 동작 중
 - `AskSchema`는 `src/tools/schema.ts`, `AskInput`은 `src/types.ts`, `runCli`는 `src/runtime/run-cli.ts`로 분리 완료
@@ -85,8 +85,8 @@ src/
 ├── mcp/
 │   ├── codex-server.ts      # Codex MCP 서버(tool 등록: ask_codex + job tools)
 │   ├── gemini-server.ts     # Gemini MCP 서버(tool 등록: ask_gemini + job tools)
-│   ├── codex-standalone-server.ts   # stdio transport entry (codex)
-│   └── gemini-standalone-server.ts  # stdio transport entry (gemini)
+│   ├── codex-stdio-entry.ts   # stdio transport entry (codex)
+│   └── gemini-stdio-entry.ts  # stdio transport entry (gemini)
 ├── types.ts                 # 공통 타입(Provider, AskCodexInput, AskGeminiInput, JobStatus, LogEvent)
 ├── config.ts                # env 읽기 + default model/timeout 결정
 ├── job-management.ts        # wait/check/kill/list job 도구 로직
@@ -113,7 +113,7 @@ src/
 - provider별 차이는 `providers/*`, `tools/*-handlers.ts`, `mcp/*-server.ts`에 한정
 - 실행/로깅/에러 처리 공통은 `runtime`/`logger`로 집약
 - background 상태추적은 `job-management.ts` + `prompt-store.ts`로 분리
-- MCP SDK 의존성은 `mcp/*-server.ts`에 제한
+- MCP SDK 의존성은 `mcp/*` 레이어에 제한 (`*-server.ts`는 `McpServer`, `*-stdio-entry.ts`는 transport)
 
 클라이언트 등록 예시(`.mcp.json`):
 
@@ -122,11 +122,11 @@ src/
   "mcpServers": {
     "codex-mcp": {
       "command": "node",
-      "args": ["/absolute/path/to/dist/mcp/codex-standalone-server.js"]
+      "args": ["/absolute/path/to/dist/mcp/codex-stdio-entry.js"]
     },
     "gemini-mcp": {
       "command": "node",
-      "args": ["/absolute/path/to/dist/mcp/gemini-standalone-server.js"]
+      "args": ["/absolute/path/to/dist/mcp/gemini-stdio-entry.js"]
     }
   }
 }
@@ -501,7 +501,7 @@ error 필드:
 
 1. `types.ts`, `tools/schema.ts`, `providers/*`, `runtime/run-cli.ts` 파일 생성
    - 완료: `types.ts`, `tools/schema.ts`, `providers/*`, `runtime/run-cli.ts`
-2. `mcp/codex-server.ts`, `mcp/gemini-server.ts`와 standalone entry 파일 생성 (완료)
+2. `mcp/codex-server.ts`, `mcp/gemini-server.ts`와 stdio entry 파일 생성 (완료)
 3. 기존 동작 동일성 확인
    - 완료: `ask_codex`/`ask_gemini` MCP 실호출 확인 (provider 분리 엔트리)
 

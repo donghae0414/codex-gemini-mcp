@@ -2,11 +2,11 @@
   "mcpServers": {
     "codex-mcp": {
       "command": "node",
-      "args": ["./dist/mcp/codex-standalone-server.js"]
+      "args": ["./dist/mcp/codex-stdio-entry.js"]
     },
     "gemini-mcp": {
       "command": "node",
-      "args": ["./dist/mcp/gemini-standalone-server.js"]
+      "args": ["./dist/mcp/gemini-stdio-entry.js"]
     }
   }
 }

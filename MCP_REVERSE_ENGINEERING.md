@@ -21,8 +21,8 @@
 │  MCP Server (2가지 모드 지원)                               │
 │  ┌─────────────────────┐  ┌─────────────────────┐        │
 │  │ In-process (SDK)     │  │ Standalone (stdio)  │        │
-│  │ - codex-server.ts    │  │ - codex-standalone   │        │
-│  │ - gemini-server.ts   │  │ - gemini-standalone  │        │
+│  │ - codex-server.ts    │  │ - codex-stdio-entry  │        │
+│  │ - gemini-server.ts   │  │ - gemini-stdio-entry │        │
 │  └─────────────────────┘  └─────────────────────┘        │
 └─────────────────────────────────────────────────────────────┘
                               │
@@ -48,10 +48,10 @@
 ```
 src/mcp/
 ├── codex-server.ts              # SDK in-process 서버 (name: "x")
-├── codex-standalone-server.ts   # stdio standalone 서버 (name: "x")
+├── codex-stdio-entry.ts         # stdio entry 서버 (name: "x")
 ├── codex-core.ts                # 핵심 로직 (1,060 라인)
 ├── gemini-server.ts             # SDK in-process 서버 (name: "g")
-├── gemini-standalone-server.ts  # stdio standalone 서버 (name: "g")
+├── gemini-stdio-entry.ts        # stdio entry 서버 (name: "g")
 ├── gemini-core.ts               # 핵심 로직 (900+ 라인)
 ├── job-management.ts            # 백그라운드 작업 관리 (741 라인)
 ├── prompt-persistence.ts      # 프롬프트/응답 영속화 (498 라인)
@@ -101,7 +101,7 @@ export const geminiToolNames = ['ask_gemini', 'wait_for_job', 'check_job_status'
 
 ### 2.2 Standalone 서버 (stdio transport)
 
-#### Codex Standalone (`src/mcp/codex-standalone-server.ts`)
+#### Codex Stdio Entry (`src/mcp/codex-stdio-entry.ts`)
 
 ```typescript
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
@@ -115,7 +115,7 @@ const server = new Server(
 // bridge/codex-server.cjs로 빌드되어 .mcp.json에서 참조
 ```
 
-#### Gemini Standalone (`src/mcp/gemini-standalone-server.ts`)
+#### Gemini Stdio Entry (`src/mcp/gemini-stdio-entry.ts`)
 
 ```typescript
 const server = new Server(
@@ -1002,7 +1002,7 @@ OMC는 두 가지 MCP 서버 모드를 각각 다르게 빌드합니다:
 | 모드 | 소스 | 빌드 출력 | 사용처 |
 |------|------|-----------|--------|
 | **In-Process** | `src/mcp/codex-server.ts` | `dist/mcp/codex-server.js` | OMC 플러그인 내부 (SDK) |
-| **Standalone** | `src/mcp/codex-standalone-server.ts` | `bridge/codex-server.cjs` | Claude Code 외부 프로세스 |
+| **Stdio Entry** | `src/mcp/codex-stdio-entry.ts` | `bridge/codex-server.cjs` | Claude Code 외부 프로세스 |
 
 ### 11.2 빌드 스크립트 구조
 
@@ -1092,7 +1092,7 @@ try {
 
 // [7] esbuild 번들링
 await esbuild.build({
-  entryPoints: ['src/mcp/codex-standalone-server.ts'],  // ← 입력: Standalone 서버
+  entryPoints: ['src/mcp/codex-stdio-entry.ts'],  // ← 입력: stdio entry 서버
   bundle: true,                                          // ← 모든 의존성 포함
   platform: 'node',
   target: 'node18',
@@ -1128,7 +1128,7 @@ console.log(`Built ${outfile}`);
 
 | 옵션 | 값 | 목적 |
 |------|-----|------|
-| `entryPoints` | `src/mcp/codex-standalone-server.ts` | Standalone 서버 소스 |
+| `entryPoints` | `src/mcp/codex-stdio-entry.ts` | stdio entry 서버 소스 |
 | `bundle` | `true` | 모든 import를 단일 파일로 묶음 |
 | `platform` | `node` | Node.js 환경 타겟 |
 | `target` | `node18` | Node.js 18 문법 호환 |
