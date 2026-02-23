@@ -10,7 +10,11 @@
 - 완료: MCP 실호출 검증 (`ask_codex`, `ask_gemini`)
 - 완료: Gemini 호출 인자 `--prompt` 사용(현재 설치된 Gemini CLI 규격 호환)
 - 완료: provider 분리 서버 엔트리(`codex-mcp`, `gemini-mcp`) 추가
-- 미완료: background job/logging 고도화
+- 완료: Phase C background 실행/잡 관리 1차 구현
+  - `background: true` 분기 + 파일 기반 status/prompt/response 영속화
+  - `wait_for_job`, `check_job_status`, `kill_job`, `list_jobs` provider별 등록
+  - 상태 전이(`spawned -> running -> completed/failed/timeout`) 동작 검증
+- 미완료: Phase D 구조화 로깅, Phase E 안정성 강화
 
 ## 1. 목적과 의사결정
 
@@ -32,15 +36,16 @@
 기준: provider 분리 엔트리(`src/mcp/*-stdio-entry.ts`) + 분리 모듈(`providers/`, `mcp/` 포함)
 
 - 이미 `ask_codex`, `ask_gemini`, 공통 `runCli`가 동작 중
-- `AskSchema`는 `src/tools/schema.ts`, `AskInput`은 `src/types.ts`, `runCli`는 `src/runtime/run-cli.ts`로 분리 완료
+- `AskCodexSchema`/`AskGeminiSchema`는 `src/tools/schema.ts`, ask/job 공통 타입은 `src/types.ts`, `runCli`는 `src/runtime/run-cli.ts`로 분리 완료
 - MCP tool 등록은 `server.registerTool(...)`로 교체 완료
 - `model` 기본값 전략은 `config.ts`로 중앙화 완료 (`request.model > env default > hardcoded default`)
 - 로깅은 부트 로그 수준이며 요청/응답/실행시간 트래킹이 없음
-- provider별 인자 규칙은 `src/providers/*`로 분리 완료. background/job/logging 계층은 아직 미구현
+- provider별 인자 규칙은 `src/providers/*`로 분리 완료
+- background/job 계층은 구현 완료(`run-cli-background.ts`, `prompt-store.ts`, `job-management.ts`)
 
 문제 요약:
 
-- provider 분리/server 분리는 완료됐지만 background/job/logging이 미완료
+- provider 분리/server 분리는 완료됐고 background/job는 구현 완료. logging/안정성 강화가 미완료
 - 테스트 단위 분리가 어려움
 - 향후 tool 추가 시 동일 패턴 복붙 유도
 
@@ -144,7 +149,7 @@ src/
 - `interface BaseAskInput { prompt: string; model?: string; timeout_ms?: number; working_directory?: string; background?: boolean }`
 - `interface AskCodexInput extends BaseAskInput { reasoning_effort?: "minimal" | "low" | "medium" | "high" | "xhigh" }`
 - `type AskGeminiInput = BaseAskInput`
-- `interface RunCliRequest { provider: Provider; command: string; args: string[]; stdinText: string; cwd?: string; timeoutMs: number; requestId: string }`
+- `interface BackgroundRunRequest { provider: Provider; command: string; args: string[]; prompt: string; model: string; timeoutMs: number; cwd?: string }`
 - `interface RunCliSuccess { stdout: string; stderr: string; exitCode: 0; durationMs: number; truncated: boolean }`
 - `type JobState = "spawned" | "running" | "completed" | "failed" | "timeout"`
 - `interface JobStatus { provider: Provider; jobId: string; status: JobState; pid?: number; promptFile: string; responseFile: string; model: string; spawnedAt: string; completedAt?: string; error?: string; killedByUser?: boolean }`
@@ -179,30 +184,27 @@ src/
 
 - 입력: `{ prompt, model, reasoning_effort? }`
 - 출력: `{ command: "codex", args: [...] }`
-- 호출 규약(oh-my-claudecode 동일):
-  - 기본 args: `['exec', '-m', model, '--json', '--full-auto']`
-  - `reasoning_effort`가 유효한 경우에만 `-c model_reasoning_effort="..."` 추가
-  - prompt는 argv가 아니라 `stdin`으로 전달
+- 현재 호출 규약(구현 기준):
+  - 기본 args: `['exec', '--ephemeral', '--model', model]`
+  - `reasoning_effort`가 유효한 경우에만 `-c model_reasoning_effort=...` 추가
+  - prompt는 argv 마지막 인자로 전달
 
 ### 5.4 `providers/gemini.ts`
 
 - 입력: `{ prompt, model }`
 - 출력: `{ command: "gemini", args: [...] }`
-- 호출 규약(oh-my-claudecode 동일):
-  - 기본 args: `['-p=.', '--yolo']`
-  - model 지정 시: `['-p=.', '--yolo', '--model', model]`
-  - prompt는 argv가 아니라 `stdin`으로 전달
+- 현재 호출 규약(구현 기준):
+  - 기본 args: `['--prompt', prompt, '--model', model]`
 
 ### 5.5 `runtime/run-cli.ts`
 
 책임:
 
 - `spawn` 실행
-- `stdinText`를 child stdin으로 write/end
 - timeout 강제 종료
 - stdout/stderr 수집
-- output size cap + truncation
-- 에러 정규화
+- (Phase E 예정) output size cap + truncation
+- (Phase E 예정) 에러 정규화
 
 에러 분류:
 
@@ -318,9 +320,9 @@ src/
 
 1. `resolveModel("codex", model)`
 2. provider args 생성
-3. `background`가 `false`면 `runCli` 실행 (prompt는 stdin write)
+3. `background`가 `false`면 `runCli` 실행
 4. `background`가 `true`면 `runCliBackground` 실행 후 `jobId`/경로 메타데이터 반환
-5. foreground일 때 Codex `--json` 출력(JSONL)에서 텍스트 이벤트를 파싱해 최종 text 반환
+5. foreground일 때 `stdout.trim()`을 응답으로 사용
 
 ### 6.2 `ask_gemini`
 
@@ -338,7 +340,7 @@ src/
 
 1. `resolveModel("gemini", model)`
 2. provider args 생성
-3. `background`가 `false`면 `runCli` 실행 (prompt는 stdin write)
+3. `background`가 `false`면 `runCli` 실행
 4. `background`가 `true`면 `runCliBackground` 실행 후 `jobId`/경로 메타데이터 반환
 5. foreground일 때 `stdout.trim()`을 응답으로 사용 (별도 JSON output-format 파싱 없음)
 
@@ -486,13 +488,13 @@ error 필드:
 |---|---|---|
 | ask_codex / ask_gemini | 포함 | 필수 기능 |
 | 모델 기본값 + override | 포함 | 요구사항 핵심 |
-| request/response/time 로깅 | 포함 | 요구사항 핵심 |
-| 파일 기반 로그 분리 저장 | 포함 | 사용자 요구사항 반영 |
+| request/response/time 로깅 | 미포함(Phase D 예정) | logger 모듈 미구현 |
+| 파일 기반 로그 분리 저장 | 미포함(Phase D 예정) | logger 모듈 미구현 |
 | background jobs (`wait/check/kill/list`) | 포함 | oh-my-claudecode 사용성 반영 |
 | prompt/response/status 파일 영속화 | 포함 | background 추적 필수 기반 |
-| 모델명 검증(regex) | 포함 | 안전한 입력 검증 |
-| timeout/에러 정규화 | 포함 | 운영 안정성 |
-| Codex JSONL 파싱(`--json`) | 포함 | 호출 패턴 동일성 + 응답 품질 |
+| 모델명 검증(regex) | 미포함(Phase E 예정) | 스키마 검증 미반영 |
+| timeout/에러 정규화 | 부분 포함 | timeout/non-zero는 구현, 표준 에러코드 체계는 미구현 |
+| Codex JSONL 파싱(`--json`) | 미포함 | 현재 foreground는 `stdout.trim()` 사용 |
 | fallback chain | 보류 | 단순성 우선 |
 | SQLite Job DB | 제외 | 현재 목표와 불일치 |
 
@@ -537,7 +539,7 @@ error 필드:
 
 ### Phase C - background 실행/잡 관리 추가
 
-현재 상태: **미시작**
+현재 상태: **완료 (1차 구현 + 실호출 검증 완료)**
 
 1. `runtime/run-cli-background.ts`, `prompt-store.ts`, `job-management.ts` 구현
 2. `ask_codex`, `ask_gemini`에 `background` 분기 추가
@@ -580,10 +582,9 @@ error 필드:
 
 ### 다음 진행 단계 (권장 순서)
 
-1. **Phase C 착수**: `runtime/run-cli-background.ts`, `prompt-store.ts`, `job-management.ts` 최소 골격 구현
-2. **도구 확장**: `wait_for_job`, `check_job_status`, `kill_job`, `list_jobs`를 provider 서버별로 등록
-3. **Phase D 적용**: 구조화 로깅(JSONL) 구현 + stdout 오염 방지 검증
-4. **Phase E 마감**: 에러 표준화/출력 cap/모델명 검증 순으로 안정성 강화
+1. **Phase D 적용**: 구조화 로깅(JSONL) 구현 + stdout 오염 방지 검증
+2. **Phase E 마감**: 에러 표준화/출력 cap/모델명 검증 순으로 안정성 강화
+3. **문서 동기화**: README의 tool surface/background 설명을 현재 구현과 일치시키기
 
 ---
 
@@ -628,7 +629,7 @@ npm run build
 
 - provider-specific 로직은 `providers/`에만
 - 환경변수 접근은 `config.ts`에서만
-- `console.error` 직접 호출은 `logger/*`에서만 (예외: 부트 실패)
+- `console.error` 직접 호출은 `logger/*`에서만을 목표로 하되, 현재는 부트 실패/배경 상태 파일 쓰기 실패 fallback에서 제한적으로 사용
 - 신규 tool 추가 시 handler + (필요 시 provider) + 서버 등록만 추가, runtime 재사용
 
 성장 기준(언제 기능 확장?):

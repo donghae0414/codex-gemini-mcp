@@ -1,10 +1,10 @@
 # PROJECT KNOWLEDGE BASE
 
-**Generated:** 2026-02-23T12:00:00+09:00
+**Generated:** 2026-02-23T17:15:00+09:00
 **Project:** codex-gemini-mcp-sample
 
 ## OVERVIEW
-Minimal TypeScript MCP server. Forwards prompts to local `codex` and `gemini` CLIs through two tools. Phase A first split is applied (`src/types.ts`, `src/tools/schema.ts`, `src/runtime/run-cli.ts`).
+Minimal TypeScript MCP server. Forwards prompts to local `codex` and `gemini` CLIs through provider-specific tools. Phase C first pass is applied (background execution + job management tools).
 
 ## STRUCTURE
 ```text
@@ -12,9 +12,11 @@ Minimal TypeScript MCP server. Forwards prompts to local `codex` and `gemini` CL
 ├── src/              # MCP server implementation
 │   ├── mcp/          # provider-specific MCP servers + stdio entry files
 │   ├── providers/    # provider-specific CLI argument builders
-│   ├── types.ts      # shared input types
-│   ├── tools/        # zod schemas
-│   └── runtime/      # CLI execution runtime
+│   ├── tools/        # schemas + provider handlers
+│   ├── runtime/      # foreground/background CLI execution
+│   ├── prompt-store.ts    # prompt/response/status file persistence
+│   ├── job-management.ts  # wait/check/kill/list logic
+│   └── types.ts      # shared ask/job types
 ├── README.md         # quick start
 └── MCP_REVERSE_ENGINEERING.md  # reference-only, larger design
 ```
@@ -25,15 +27,18 @@ Minimal TypeScript MCP server. Forwards prompts to local `codex` and `gemini` CL
 | Codex MCP server | `src/mcp/codex-server.ts` | `createCodexServer()` |
 | Gemini MCP server | `src/mcp/gemini-server.ts` | `createGeminiServer()` |
 | Stdio entries | `src/mcp/*-stdio-entry.ts` | stdio transport entrypoint |
-| Input validation schema | `src/tools/schema.ts` | `AskSchema` |
-| Provider CLI mapping | `src/providers/*.ts` | `askCodex`, `askGemini` |
-| CLI execution | `src/runtime/run-cli.ts` | `runCli` helper |
+| Input validation schema | `src/tools/schema.ts` | ask + job schemas |
+| Ask handlers | `src/tools/*-handlers.ts` | foreground/background branching |
+| Provider CLI mapping | `src/providers/*.ts` | `build*Command`, `ask*` |
+| CLI execution | `src/runtime/run-cli.ts`, `src/runtime/run-cli-background.ts` | foreground/background runtime |
+| Job state persistence | `src/prompt-store.ts` | prompt/response/status file I/O |
+| Job tool logic | `src/job-management.ts` | wait/check/kill/list implementation |
 | Setup & usage | `README.md` | install/build/run + `.mcp.json` example |
 
 ## CONVENTIONS
 - Keep implementation minimal; prefer small modules for shared concerns.
 - Log only via `console.error` (stdout is MCP protocol channel).
-- No background jobs/persistence in baseline sample.
+- Background jobs persist status in `.codex-gemini-mcp/jobs` and prompts/responses in `.codex-gemini-mcp/prompts`.
 - Default CLI timeout is 600000ms (10 minutes).
 
 ## ANTI-PATTERNS

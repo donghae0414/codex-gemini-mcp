@@ -4,8 +4,9 @@
 
 - MCP tool `ask_codex`: 로컬 `codex` CLI에 프롬프트 전달
 - MCP tool `ask_gemini`: 로컬 `gemini` CLI에 프롬프트 전달
+- MCP background tools: `wait_for_job`, `check_job_status`, `kill_job`, `list_jobs`
 - stdio transport 기반으로 동작
-- 현재 Phase A 1차 구조 분리 완료 (`types`, `schema`, `run-cli` 모듈 분리)
+- 현재 Phase C 1차 구현 완료 (background 실행 + job 상태 파일 추적)
 
 `MCP_REVERSE_ENGINEERING.md`는 참고용이며, 이 샘플은 의도적으로 기능을 최소화했습니다.
 
@@ -57,6 +58,8 @@ npm run dev:gemini
 - `timeout_ms` (number, optional, default 600000)
   - long-running task는 `300000` 이상(5분 이상) 권장
 - `working_directory` (string, optional)
+- `background` (boolean, optional, default `false`)
+- `reasoning_effort` (string, optional: `minimal` | `low` | `medium` | `high` | `xhigh`)
 
 ### ask_gemini
 
@@ -65,11 +68,32 @@ npm run dev:gemini
 - `timeout_ms` (number, optional, default 600000)
   - long-running task는 `300000` 이상(5분 이상) 권장
 - `working_directory` (string, optional)
+- `background` (boolean, optional, default `false`)
+
+### wait_for_job
+
+- `job_id` (string, required)
+- `timeout_ms` (number, optional, default 3600000, max 3600000)
+
+### check_job_status
+
+- `job_id` (string, required)
+
+### kill_job
+
+- `job_id` (string, required)
+- `signal` (string, optional: `SIGTERM` | `SIGINT`, default `SIGTERM`)
+
+### list_jobs
+
+- `status_filter` (string, optional: `active` | `completed` | `failed` | `all`, default `active`)
+- `limit` (number, optional, default `50`)
 
 ## Runtime Notes
 
 - `ask_codex`: `codex exec --ephemeral` 호출
 - `ask_gemini`: `gemini --prompt <text>` 호출
+- `background: true` 호출 시 `.codex-gemini-mcp/jobs`, `.codex-gemini-mcp/prompts`에 상태/입출력 파일 저장
 - 모델 선택 우선순위: `request.model > env default > hardcoded default`
   - codex env: `MCP_CODEX_DEFAULT_MODEL` (기본값: `gpt-5.3-codex`)
   - gemini env: `MCP_GEMINI_DEFAULT_MODEL` (기본값: `gemini-3-pro-preview`)
@@ -89,14 +113,15 @@ npm run dev:gemini
 ## Current Status
 
 - MCP 등록 엔트리: `dist/mcp/codex-stdio-entry.js`, `dist/mcp/gemini-stdio-entry.js`
-- 검증 완료: `ask_codex`, `ask_gemini` 도구 실호출 성공
-- 아직 미구현: background job tools
+- 검증 완료: `ask_codex`, `ask_gemini` foreground/background 실호출 성공
+- 검증 완료: `wait_for_job`, `check_job_status`, `kill_job`, `list_jobs` 실호출 성공
+- 미구현: 구조화 로깅(Phase D), 안정성 강화(Phase E)
 
 ## Scope (deliberately minimal)
 
 이 샘플에는 아래 기능이 없습니다:
 
-- background job 관리
-- prompt/response 파일 영속화
-- fallback 모델 체인
+- 구조화 JSONL 로깅
+- 모델 fallback chain
+- model name regex 검증/표준 에러코드 체계
 - standalone bridge 번들링
