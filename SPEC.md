@@ -6,8 +6,9 @@
 - 완료: MCP SDK deprecated API 제거 (`server.tool` -> `server.registerTool`)
 - 완료: 기본 CLI timeout 10분 적용 (`600000ms`)
 - 완료: MCP 실호출 검증 (`ask_codex`, `ask_gemini`)
-- 반영: Gemini 호출 인자 `--prompt` 사용(현재 설치된 Gemini CLI 규격 호환)
-- 미완료: provider 분리 서버(`codex-mcp`, `gemini-mcp`) 및 background job/logging 고도화
+- 완료: Gemini 호출 인자 `--prompt` 사용(현재 설치된 Gemini CLI 규격 호환)
+- 완료: provider 분리 서버 엔트리(`codex-mcp`, `gemini-mcp`) 추가
+- 미완료: background job/logging 고도화
 
 ## 1. 목적과 의사결정
 
@@ -26,18 +27,18 @@
 
 ## 2. 현재 상태(As-Is)와 문제점
 
-기준: `src/index.ts` + 1차 분리 모듈
+기준: `src/index.ts` + 분리 모듈(`providers/`, `mcp/` 포함)
 
 - 이미 `ask_codex`, `ask_gemini`, 공통 `runCli`가 동작 중
 - `AskSchema`는 `src/tools/schema.ts`, `AskInput`은 `src/types.ts`, `runCli`는 `src/runtime/run-cli.ts`로 분리 완료
 - MCP tool 등록은 `server.registerTool(...)`로 교체 완료
 - `model` 파라미터는 존재하나 default model 전략 부재
 - 로깅은 부트 로그 수준이며 요청/응답/실행시간 트래킹이 없음
-- provider별 인자 규칙, 에러 포맷, 설정 전략은 아직 `src/index.ts` 함수 내부에 남아 있어 확장 시 충돌 위험이 큼
+- provider별 인자 규칙은 `src/providers/*`로 분리 완료. 다만 모델 정책(`config.ts`)과 background/job/logging 계층은 아직 미구현
 
 문제 요약:
 
-- 단일 파일 집중도는 완화됐지만 provider 분리/server 분리는 아직 미완료
+- provider 분리/server 분리는 완료됐지만 background/job/logging/모델정책이 미완료
 - 테스트 단위 분리가 어려움
 - 향후 tool 추가 시 동일 패턴 복붙 유도
 
@@ -496,14 +497,13 @@ error 필드:
 
 ### Phase A - 구조 분리 (리팩터링, 기능 동일)
 
-현재 상태: **진행 중 (1차 완료)**
+현재 상태: **완료**
 
 1. `types.ts`, `tools/schema.ts`, `providers/*`, `runtime/run-cli.ts` 파일 생성
-   - 완료: `types.ts`, `tools/schema.ts`, `runtime/run-cli.ts`
-   - 미완료: `providers/*`
-2. `mcp/codex-server.ts`, `mcp/gemini-server.ts`와 standalone entry 파일 생성 (미완료)
+   - 완료: `types.ts`, `tools/schema.ts`, `providers/*`, `runtime/run-cli.ts`
+2. `mcp/codex-server.ts`, `mcp/gemini-server.ts`와 standalone entry 파일 생성 (완료)
 3. 기존 동작 동일성 확인
-   - 완료: `ask_codex`/`ask_gemini` MCP 실호출 확인
+   - 완료: `ask_codex`/`ask_gemini` MCP 실호출 확인 (통합 엔트리 + provider 분리 엔트리)
 
 완료 기준:
 
@@ -511,6 +511,8 @@ error 필드:
 - 기존 tool 호출 성공
 
 ### Phase B - 모델 정책 추가
+
+현재 상태: **미시작**
 
 1. `config.ts` 추가
 2. `resolveModel()` 적용
@@ -522,6 +524,8 @@ error 필드:
 - model 지정 시 요청값 우선 적용
 
 ### Phase C - background 실행/잡 관리 추가
+
+현재 상태: **미시작**
 
 1. `runtime/run-cli-background.ts`, `prompt-store.ts`, `job-management.ts` 구현
 2. `ask_codex`, `ask_gemini`에 `background` 분기 추가
@@ -535,6 +539,8 @@ error 필드:
 - status 파일 상태 전이(`spawned -> running -> terminal`) 검증
 
 ### Phase D - 구조화 로깅 추가
+
+현재 상태: **미시작**
 
 1. `logger/index.ts`, `logger/file-sink.ts` 구현
 2. handler + run-cli에 request/response/error 로그 삽입
@@ -550,6 +556,8 @@ error 필드:
 
 ### Phase E - 안정성 강화(경량)
 
+현재 상태: **미시작**
+
 1. 모델명 검증(regex)
 2. output cap/truncation
 3. ENOENT/timeout/non-zero exit 에러 메시지 표준화
@@ -557,6 +565,14 @@ error 필드:
 완료 기준:
 
 - 실패 케이스에서 사용자 친화 에러 반환
+
+### 다음 진행 단계 (권장 순서)
+
+1. **Phase B 착수**: `src/config.ts`를 추가해 `resolveModel()`/기본 timeout/env 정책을 단일 진입점으로 확정
+2. **Phase B 반영 연결**: `src/providers/*` 또는 tool handler에서 `request.model > env default > hardcoded default` 우선순위 적용
+3. **Phase C 착수**: `runtime/run-cli-background.ts`, `prompt-store.ts`, `job-management.ts` 최소 골격 구현
+4. **도구 확장**: `wait_for_job`, `check_job_status`, `kill_job`, `list_jobs`를 provider 서버별로 등록
+5. **Phase D/E 순차 적용**: 구조화 로깅(JSONL) -> 에러 표준화/출력 cap/모델명 검증 순으로 마감
 
 ---
 
@@ -642,7 +658,7 @@ npm run build
 ## 불확실성 지도
 
 1. 내가 가장 덜 자신있는 부분
-   - Gemini CLI가 `-p=.` + stdin 패턴을 버전 업데이트에서 그대로 유지할지
+   - Gemini CLI `--prompt`/모델 플래그 규격이 버전 업데이트에서 유지될지
    - Codex/Gemini CLI 옵션이 빠르게 변할 때 문서 동기화 비용
 
 2. 지나치게 단순화했을 수 있는 부분
