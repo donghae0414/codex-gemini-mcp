@@ -2,7 +2,7 @@ import { mkdir, readdir, readFile, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import { getJobsDir, getPromptsDir } from "./config.js";
-import type { JobStatus, Provider } from "./types.js";
+import type { JobContent, JobStatus, Provider } from "./types.js";
 
 function makeJobId(): string {
   return Math.random().toString(16).slice(2, 10).padEnd(8, "0").slice(0, 8);
@@ -26,8 +26,7 @@ async function ensureDirs(cwd?: string): Promise<void> {
 
 export interface JobFiles {
   jobId: string;
-  promptFile: string;
-  responseFile: string;
+  contentFile: string;
   statusFile: string;
 }
 
@@ -43,27 +42,48 @@ export async function createJobFiles(
   const jobsDir = getJobsDir(cwd);
   return {
     jobId,
-    promptFile: path.join(promptsDir, `${provider}-prompt-${slug}-${jobId}.md`),
-    responseFile: path.join(promptsDir, `${provider}-response-${slug}-${jobId}.md`),
+    contentFile: path.join(promptsDir, `${provider}-content-${slug}-${jobId}.json`),
     statusFile: path.join(jobsDir, `${provider}-status-${slug}-${jobId}.json`),
   };
 }
 
-export async function writePromptFile(promptFile: string, prompt: string): Promise<void> {
-  await writeFile(promptFile, prompt, "utf8");
+async function writeJsonAtomic(filePath: string, value: unknown): Promise<void> {
+  const tempPath = `${filePath}.tmp`;
+  await writeFile(tempPath, JSON.stringify(value, null, 2), "utf8");
+  await rename(tempPath, filePath);
 }
 
-export async function writeResponseFile(
-  responseFile: string,
-  response: string,
+export async function initializeContentFile(contentFile: string, content: JobContent): Promise<void> {
+  await writeJsonAtomic(contentFile, content);
+}
+
+export async function finalizeContentFile(
+  contentFile: string,
+  params: { response?: string; completedAt: string; error?: string },
 ): Promise<void> {
-  await writeFile(responseFile, response, "utf8");
+  const content = await readJobContent(contentFile);
+  const next: JobContent = {
+    ...content,
+    completedAt: params.completedAt,
+  };
+
+  if (params.response !== undefined) {
+    next.response = params.response;
+  }
+  if (params.error !== undefined) {
+    next.error = params.error;
+  }
+
+  await writeJsonAtomic(contentFile, next);
+}
+
+export async function readJobContent(contentFile: string): Promise<JobContent> {
+  const content = await readFile(contentFile, "utf8");
+  return JSON.parse(content) as JobContent;
 }
 
 export async function writeJobStatus(statusFile: string, status: JobStatus): Promise<void> {
-  const tempPath = `${statusFile}.tmp`;
-  await writeFile(tempPath, JSON.stringify(status, null, 2), "utf8");
-  await rename(tempPath, statusFile);
+  await writeJsonAtomic(statusFile, status);
 }
 
 export async function readJobStatus(statusFile: string): Promise<JobStatus> {

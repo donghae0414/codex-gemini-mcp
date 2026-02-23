@@ -1,6 +1,6 @@
 import { spawn } from "node:child_process";
 
-import { createJobFiles, writeJobStatus, writePromptFile, writeResponseFile } from "../prompt-store.js";
+import { createJobFiles, finalizeContentFile, initializeContentFile, writeJobStatus } from "../prompt-store.js";
 import type { BackgroundRunRequest, BackgroundRunResult, JobStatus } from "../types.js";
 
 function nowIso(): string {
@@ -19,13 +19,21 @@ export async function runCliBackground(
   request: BackgroundRunRequest,
 ): Promise<BackgroundRunResult> {
   const { provider, command, args, prompt, model, timeoutMs, cwd } = request;
-  const { jobId, promptFile, responseFile, statusFile } = await createJobFiles(
+  const { jobId, contentFile, statusFile } = await createJobFiles(
     provider,
     prompt,
     cwd,
   );
 
-  await writePromptFile(promptFile, prompt);
+  const spawnedAt = nowIso();
+
+  await initializeContentFile(contentFile, {
+    provider,
+    jobId,
+    model,
+    prompt,
+    spawnedAt,
+  });
 
   const child = spawn(command, args, {
     cwd,
@@ -44,10 +52,9 @@ export async function runCliBackground(
     jobId,
     status: "spawned",
     pid: child.pid,
-    promptFile,
-    responseFile,
+    contentFile,
     model,
-    spawnedAt: nowIso(),
+    spawnedAt,
   };
   await persistStatus(statusFile, status);
 
@@ -66,7 +73,15 @@ export async function runCliBackground(
     clearTimeout(timer);
 
     if (nextStatus === "completed") {
-      await writeResponseFile(responseFile, stdout.trim() || "(empty response)");
+      await finalizeContentFile(contentFile, {
+        response: stdout.trim() || "(empty response)",
+        completedAt: nowIso(),
+      });
+    } else {
+      await finalizeContentFile(contentFile, {
+        completedAt: nowIso(),
+        error,
+      });
     }
 
     status.status = nextStatus;
@@ -114,8 +129,7 @@ export async function runCliBackground(
     provider,
     jobId,
     status: "spawned",
-    promptFile,
-    responseFile,
+    contentFile,
     statusFile,
   };
 }

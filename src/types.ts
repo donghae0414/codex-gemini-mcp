@@ -23,13 +23,23 @@ export interface JobStatus {
   jobId: string;
   status: JobState;
   pid?: number;
-  promptFile: string;
-  responseFile: string;
+  contentFile: string;
   model: string;
   spawnedAt: string;
   completedAt?: string;
   error?: string;
   killedByUser?: boolean;
+}
+
+export interface JobContent {
+  provider: Provider;
+  jobId: string;
+  model: string;
+  prompt: string;
+  response?: string;
+  spawnedAt: string;
+  completedAt?: string;
+  error?: string;
 }
 
 export interface BackgroundRunRequest {
@@ -46,8 +56,7 @@ export interface BackgroundRunResult {
   provider: Provider;
   jobId: string;
   status: "spawned";
-  promptFile: string;
-  responseFile: string;
+  contentFile: string;
   statusFile: string;
 }
 

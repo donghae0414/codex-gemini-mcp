@@ -1,8 +1,7 @@
-import { readFile } from "node:fs/promises";
-
 import {
   findStatusFileByJobId,
   listJobStatuses,
+  readJobContent,
   readJobStatus,
   writeJobStatus,
 } from "./prompt-store.js";
@@ -58,8 +57,8 @@ export async function waitForJob(params: {
     if (isTerminal(status.status)) {
       if (status.status === "completed") {
         try {
-          const responseText = await readFile(status.responseFile, "utf8");
-          return { status, responseText };
+          const content = await readJobContent(status.contentFile);
+          return { status, responseText: content.response ?? "(empty response)" };
         } catch {
           return { status };
         }
