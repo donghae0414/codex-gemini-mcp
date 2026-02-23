@@ -11,10 +11,13 @@
 - 완료: Gemini 호출 인자 `--prompt` 사용(현재 설치된 Gemini CLI 규격 호환)
 - 완료: provider 분리 서버 엔트리(`codex-mcp`, `gemini-mcp`) 추가
 - 완료: Phase C background 실행/잡 관리 1차 구현
-  - `background: true` 분기 + 파일 기반 status/prompt/response 영속화
+  - `background: true` 분기 + 파일 기반 status/content 영속화
   - `wait_for_job`, `check_job_status`, `kill_job`, `list_jobs` provider별 등록
   - 상태 전이(`spawned -> running -> completed/failed/timeout`) 동작 검증
-- 미완료: Phase D 구조화 로깅, Phase E 안정성 강화
+- 완료: Phase D 구조화 로깅(JSONL 파일 sink + request/response/error 이벤트)
+- 완료: request_id <-> jobId 상관관계 필드 추가 (`job_id` in JSONL, `requestId` in status/content)
+- 완료: foreground/background timeout + error 케이스 실호출 검증 (codex/gemini)
+- 미완료: Phase E 안정성 강화 (부분 진행: 에러코드 기반 로깅/검증)
 
 ## 1. 목적과 의사결정
 
@@ -39,13 +42,13 @@
 - `AskCodexSchema`/`AskGeminiSchema`는 `src/tools/schema.ts`, ask/job 공통 타입은 `src/types.ts`, `runCli`는 `src/runtime/run-cli.ts`로 분리 완료
 - MCP tool 등록은 `server.registerTool(...)`로 교체 완료
 - `model` 기본값 전략은 `config.ts`로 중앙화 완료 (`request.model > env default > hardcoded default`)
-- 로깅은 부트 로그 수준이며 요청/응답/실행시간 트래킹이 없음
+- 로깅은 `logger/*` 기반 request/response/error JSONL 이벤트로 확장 완료
 - provider별 인자 규칙은 `src/providers/*`로 분리 완료
 - background/job 계층은 구현 완료(`run-cli-background.ts`, `prompt-store.ts`, `job-management.ts`)
 
 문제 요약:
 
-- provider 분리/server 분리는 완료됐고 background/job는 구현 완료. logging/안정성 강화가 미완료
+- provider 분리/server 분리, background/job, 구조화 로깅은 완료. 안정성 강화(Phase E)가 미완료
 - 테스트 단위 분리가 어려움
 - 향후 tool 추가 시 동일 패턴 복붙 유도
 
@@ -149,11 +152,13 @@ src/
 - `interface BaseAskInput { prompt: string; model?: string; timeout_ms?: number; working_directory?: string; background?: boolean }`
 - `interface AskCodexInput extends BaseAskInput { reasoning_effort?: "minimal" | "low" | "medium" | "high" | "xhigh" }`
 - `type AskGeminiInput = BaseAskInput`
-- `interface BackgroundRunRequest { provider: Provider; command: string; args: string[]; prompt: string; model: string; timeoutMs: number; cwd?: string }`
+- `interface RuntimeLogContext { requestId: string; jobId?: string; provider: Provider; tool: "ask_codex" | "ask_gemini"; model: string; timeoutMs: number; cwd?: string }`
+- `interface BackgroundRunRequest { provider: Provider; command: string; args: string[]; prompt: string; model: string; timeoutMs: number; cwd?: string; logContext?: RuntimeLogContext }`
 - `interface RunCliSuccess { stdout: string; stderr: string; exitCode: 0; durationMs: number; truncated: boolean }`
 - `type JobState = "spawned" | "running" | "completed" | "failed" | "timeout"`
-- `interface JobStatus { provider: Provider; jobId: string; status: JobState; pid?: number; promptFile: string; responseFile: string; model: string; spawnedAt: string; completedAt?: string; error?: string; killedByUser?: boolean }`
-- 네이밍 규칙: MCP tool 입력 파라미터는 `snake_case`(`job_id`, `status_filter`)를 유지하고, `JobStatus`/status JSON/metadata payload 키는 `camelCase`(`jobId`, `promptFile`)를 사용한다.
+- `interface JobStatus { provider: Provider; jobId: string; requestId?: string; status: JobState; pid?: number; contentFile: string; model: string; spawnedAt: string; completedAt?: string; error?: string; killedByUser?: boolean }`
+- `interface JobContent { provider: Provider; jobId: string; requestId?: string; model: string; prompt: string; response?: string; spawnedAt: string; completedAt?: string; error?: string }`
+- 네이밍 규칙: MCP tool 입력 파라미터는 `snake_case`(`job_id`, `status_filter`)를 유지하고, `JobStatus`/`JobContent`/metadata payload 키는 `camelCase`(`jobId`, `requestId`, `contentFile`)를 사용한다.
 
 ### 5.2 `config.ts`
 
@@ -234,6 +239,7 @@ src/
 - 보조 sink: `stderr` 미러링(옵션, 기본 on)
 - 기본은 메타데이터만 출력
 - preview/full text는 env flag로 opt-in
+- background 경로 상관관계 필드(`job_id`)를 response/error 이벤트에 기록
 
 파일 로깅 규칙:
 
@@ -246,15 +252,14 @@ src/
 
 책임:
 
-- prompt/response/status 파일 경로 생성
-- prompt/response markdown 저장
+- content/status 파일 경로 생성
+- content JSON 저장(prompt/response 포함)
 - status JSON 저장(원자적 write)
 - job 조회/목록 함수 제공
 
 저장 경로:
 
-- `<runtime>/prompts/{provider}-prompt-{slug}-{id}.md`
-- `<runtime>/prompts/{provider}-response-{slug}-{id}.md`
+- `<runtime>/prompts/{provider}-content-{slug}-{id}.json`
 - `<runtime>/jobs/{provider}-status-{slug}-{id}.json`
 
 ### 5.9 `job-management.ts`
@@ -415,13 +420,12 @@ src/
   - `provider`
   - `jobId`
   - `status` (`spawned`)
-  - `promptFile`
-  - `responseFile`
+  - `contentFile`
   - `statusFile`
 
 `wait_for_job` 성공(terminal):
 
-- `completed`: 응답 텍스트(또는 response file 경로 + 요약) 반환
+- `completed`: 응답 텍스트(또는 content file 경로 + 요약) 반환
 - `failed`/`timeout`: `isError: true`와 함께 상태/원인 반환
 
 `check_job_status` 성공:
@@ -456,6 +460,10 @@ src/
 
 - `ts`, `request_id`, `provider`, `tool`, `model`, `timeout_ms`
 
+background 상관관계 필드:
+
+- `job_id` (response/error 이벤트에서 optional)
+
 request 필드:
 
 - `prompt_chars`, `cwd`
@@ -488,12 +496,12 @@ error 필드:
 |---|---|---|
 | ask_codex / ask_gemini | 포함 | 필수 기능 |
 | 모델 기본값 + override | 포함 | 요구사항 핵심 |
-| request/response/time 로깅 | 미포함(Phase D 예정) | logger 모듈 미구현 |
-| 파일 기반 로그 분리 저장 | 미포함(Phase D 예정) | logger 모듈 미구현 |
+| request/response/time 로깅 | 포함 | logger 모듈 구현 + runtime/handler 연동 |
+| 파일 기반 로그 분리 저장 | 포함 | `.codex-gemini-mcp/logs/mcp-YYYY-MM-DD.jsonl` |
 | background jobs (`wait/check/kill/list`) | 포함 | oh-my-claudecode 사용성 반영 |
-| prompt/response/status 파일 영속화 | 포함 | background 추적 필수 기반 |
+| content/status 파일 영속화 | 포함 | background 추적 필수 기반 |
 | 모델명 검증(regex) | 미포함(Phase E 예정) | 스키마 검증 미반영 |
-| timeout/에러 정규화 | 부분 포함 | timeout/non-zero는 구현, 표준 에러코드 체계는 미구현 |
+| timeout/에러 정규화 | 부분 포함 | `CLI_NOT_FOUND`/`CLI_TIMEOUT`/`CLI_NON_ZERO_EXIT` 코드 로깅 및 에러 반환 구현, output cap/모델 regex는 미구현 |
 | Codex JSONL 파싱(`--json`) | 미포함 | 현재 foreground는 `stdout.trim()` 사용 |
 | fallback chain | 보류 | 단순성 우선 |
 | SQLite Job DB | 제외 | 현재 목표와 불일치 |
@@ -554,27 +562,31 @@ error 필드:
 
 ### Phase D - 구조화 로깅 추가
 
-현재 상태: **미시작**
+현재 상태: **완료**
 
-1. `logger/index.ts`, `logger/file-sink.ts` 구현
-2. handler + run-cli에 request/response/error 로그 삽입
-3. stdout 오염 여부 확인
+1. `logger/index.ts`, `logger/file-sink.ts`, `logger/event.ts` 구현
+2. handler + run-cli/run-cli-background에 request/response/error 로그 삽입
+3. stdout 오염 없이 stderr/file sink로 로깅
 4. `.codex-gemini-mcp/logs` 파일 생성/append 확인
 
 완료 기준:
 
 - stderr JSONL 출력 확인
 - stdout MCP payload 정상
-
 - `.codex-gemini-mcp/logs/mcp-YYYY-MM-DD.jsonl` 이벤트 기록 확인
 
 ### Phase E - 안정성 강화(경량)
 
-현재 상태: **미시작**
+현재 상태: **부분 진행**
 
 1. 모델명 검증(regex)
 2. output cap/truncation
 3. ENOENT/timeout/non-zero exit 에러 메시지 표준화
+
+반영된 항목(일부):
+
+- `CLI_NOT_FOUND` / `CLI_TIMEOUT` / `CLI_NON_ZERO_EXIT` 코드 기반 에러 로깅
+- foreground/background timeout/error 경로 실호출 검증 완료
 
 완료 기준:
 
@@ -582,9 +594,8 @@ error 필드:
 
 ### 다음 진행 단계 (권장 순서)
 
-1. **Phase D 적용**: 구조화 로깅(JSONL) 구현 + stdout 오염 방지 검증
-2. **Phase E 마감**: 에러 표준화/출력 cap/모델명 검증 순으로 안정성 강화
-3. **문서 동기화**: README의 tool surface/background 설명을 현재 구현과 일치시키기
+1. **Phase E 마감**: 에러 표준화/출력 cap/모델명 검증 순으로 안정성 강화
+2. **문서 동기화**: README의 tool surface/background 설명을 현재 구현과 일치시키기
 
 ---
 
@@ -619,7 +630,8 @@ npm run build
 상태 파일 검증:
 
 - `.codex-gemini-mcp/jobs/*.json` 생성 및 필드 유효성
-- `.codex-gemini-mcp/prompts/*prompt*.md`, `*response*.md` 생성
+- `.codex-gemini-mcp/prompts/*content*.json` 생성
+- background 실행에서 `requestId`(status/content) <-> `job_id`(JSONL) 상관관계 확인
 
 ---
 

@@ -8,6 +8,16 @@ export interface BaseAskInput {
   background?: boolean;
 }
 
+export interface RuntimeLogContext {
+  requestId: string;
+  jobId?: string;
+  provider: Provider;
+  tool: "ask_codex" | "ask_gemini";
+  model: string;
+  timeoutMs: number;
+  cwd?: string;
+}
+
 export interface AskCodexInput extends BaseAskInput {
   reasoning_effort?: "minimal" | "low" | "medium" | "high" | "xhigh";
 }
@@ -21,6 +31,7 @@ export type JobState = "spawned" | "running" | "completed" | "failed" | "timeout
 export interface JobStatus {
   provider: Provider;
   jobId: string;
+  requestId?: string;
   status: JobState;
   pid?: number;
   contentFile: string;
@@ -34,6 +45,7 @@ export interface JobStatus {
 export interface JobContent {
   provider: Provider;
   jobId: string;
+  requestId?: string;
   model: string;
   prompt: string;
   response?: string;
@@ -50,6 +62,7 @@ export interface BackgroundRunRequest {
   model: string;
   timeoutMs: number;
   cwd?: string;
+  logContext?: RuntimeLogContext;
 }
 
 export interface BackgroundRunResult {
