@@ -1,5 +1,14 @@
 # codex-gemini-mcp SPEC (v0.3, developer draft)
 
+## 0. 진행 현황 스냅샷 (2026-02-23)
+
+- 완료: Phase A 1차 구조 분리 (`src/types.ts`, `src/tools/schema.ts`, `src/runtime/run-cli.ts`)
+- 완료: MCP SDK deprecated API 제거 (`server.tool` -> `server.registerTool`)
+- 완료: 기본 CLI timeout 10분 적용 (`600000ms`)
+- 완료: MCP 실호출 검증 (`ask_codex`, `ask_gemini`)
+- 반영: Gemini 호출 인자 `--prompt` 사용(현재 설치된 Gemini CLI 규격 호환)
+- 미완료: provider 분리 서버(`codex-mcp`, `gemini-mcp`) 및 background job/logging 고도화
+
 ## 1. 목적과 의사결정
 
 이 문서는 `ask_codex`, `ask_gemini` 중심 MCP 서버 2개(`codex-mcp`, `gemini-mcp`)를 **단순하게 유지**하되, 개발자가 유지보수 가능한 구조로 구현하기 위한 상세 계획서다.
@@ -17,16 +26,18 @@
 
 ## 2. 현재 상태(As-Is)와 문제점
 
-기준: `src/index.ts`
+기준: `src/index.ts` + 1차 분리 모듈
 
 - 이미 `ask_codex`, `ask_gemini`, 공통 `runCli`가 동작 중
+- `AskSchema`는 `src/tools/schema.ts`, `AskInput`은 `src/types.ts`, `runCli`는 `src/runtime/run-cli.ts`로 분리 완료
+- MCP tool 등록은 `server.registerTool(...)`로 교체 완료
 - `model` 파라미터는 존재하나 default model 전략 부재
 - 로깅은 부트 로그 수준이며 요청/응답/실행시간 트래킹이 없음
-- provider별 인자 규칙, 에러 포맷, 설정 전략이 함수 내부에 섞여 있어 확장 시 충돌 위험이 큼
+- provider별 인자 규칙, 에러 포맷, 설정 전략은 아직 `src/index.ts` 함수 내부에 남아 있어 확장 시 충돌 위험이 큼
 
 문제 요약:
 
-- 변경 포인트가 한 파일에 몰려 회귀 리스크 증가
+- 단일 파일 집중도는 완화됐지만 provider 분리/server 분리는 아직 미완료
 - 테스트 단위 분리가 어려움
 - 향후 tool 추가 시 동일 패턴 복붙 유도
 
@@ -153,7 +164,7 @@ src/
 
 - `MCP_CODEX_DEFAULT_MODEL` (default: `gpt-5.3-codex`)
 - `MCP_GEMINI_DEFAULT_MODEL` (default: `gemini-3-pro-preview`)
-- `MCP_CLI_TIMEOUT_MS` (default: `120000`)
+- `MCP_CLI_TIMEOUT_MS` (default: `600000`)
 - `MCP_MAX_OUTPUT_BYTES` (default: `1048576`)
 - `MCP_LOG_DIR` (default: `<worktree>/.codex-gemini-mcp/logs`)
 - `MCP_RUNTIME_DIR` (default: `<worktree>/.codex-gemini-mcp`)
@@ -485,9 +496,14 @@ error 필드:
 
 ### Phase A - 구조 분리 (리팩터링, 기능 동일)
 
+현재 상태: **진행 중 (1차 완료)**
+
 1. `types.ts`, `tools/schema.ts`, `providers/*`, `runtime/run-cli.ts` 파일 생성
-2. `mcp/codex-server.ts`, `mcp/gemini-server.ts`와 standalone entry 파일 생성
+   - 완료: `types.ts`, `tools/schema.ts`, `runtime/run-cli.ts`
+   - 미완료: `providers/*`
+2. `mcp/codex-server.ts`, `mcp/gemini-server.ts`와 standalone entry 파일 생성 (미완료)
 3. 기존 동작 동일성 확인
+   - 완료: `ask_codex`/`ask_gemini` MCP 실호출 확인
 
 완료 기준:
 

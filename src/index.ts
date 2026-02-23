@@ -1,26 +1,20 @@
-import { spawn } from "node:child_process";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { z } from "zod";
+import { runCli } from "./runtime/run-cli.js";
+import { AskSchema } from "./tools/schema.js";
+import type { AskInput } from "./types.js";
 
 const server = new McpServer({
   name: "codex-gemini-mcp",
   version: "0.1.0",
 });
 
-const AskSchema = z.object({
-  prompt: z.string().min(1),
-  model: z.string().min(1).optional(),
-  timeout_ms: z.number().int().positive().max(600000).optional(),
-  working_directory: z.string().min(1).optional(),
-});
-
-type AskInput = z.infer<typeof AskSchema>;
-
-server.tool(
+server.registerTool(
   "ask_codex",
-  "Send a prompt to local Codex CLI and return its output.",
-  AskSchema.shape,
+  {
+    description: "Send a prompt to local Codex CLI and return its output.",
+    inputSchema: AskSchema.shape,
+  },
   async (input) => {
     try {
       const output = await askCodex(input);
@@ -32,10 +26,12 @@ server.tool(
   },
 );
 
-server.tool(
+server.registerTool(
   "ask_gemini",
-  "Send a prompt to local Gemini CLI and return its output.",
-  AskSchema.shape,
+  {
+    description: "Send a prompt to local Gemini CLI and return its output.",
+    inputSchema: AskSchema.shape,
+  },
   async (input) => {
     try {
       const output = await askGemini(input);
@@ -57,65 +53,11 @@ function askCodex(input: AskInput): Promise<string> {
 }
 
 function askGemini(input: AskInput): Promise<string> {
-  const args = [input.prompt, "--quiet"];
+  const args = ["--prompt", input.prompt];
   if (input.model) {
     args.push("--model", input.model);
   }
   return runCli("gemini", args, input.timeout_ms, input.working_directory);
-}
-
-function runCli(
-  command: string,
-  args: string[],
-  timeoutMs = 120000,
-  cwd?: string,
-): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const child = spawn(command, args, {
-      stdio: ["ignore", "pipe", "pipe"],
-      cwd,
-      env: {
-        ...process.env,
-        NO_COLOR: "1",
-        FORCE_COLOR: "0",
-        TERM: "dumb",
-      },
-    });
-
-    let stdout = "";
-    let stderr = "";
-
-    const timer = setTimeout(() => {
-      child.kill("SIGTERM");
-      reject(new Error(`${command} timed out after ${timeoutMs}ms`));
-    }, timeoutMs);
-
-    child.stdout.on("data", (chunk: Buffer) => {
-      stdout += chunk.toString();
-    });
-
-    child.stderr.on("data", (chunk: Buffer) => {
-      stderr += chunk.toString();
-    });
-
-    child.on("error", (error) => {
-      clearTimeout(timer);
-      reject(new Error(`${command} failed to start: ${error.message}`));
-    });
-
-    child.on("close", (code) => {
-      clearTimeout(timer);
-      if (code === 0) {
-        resolve(stdout.trim() || "(empty response)");
-        return;
-      }
-      reject(
-        new Error(
-          `${command} exited with code ${code}: ${stderr.trim() || "no stderr"}`,
-        ),
-      );
-    });
-  });
 }
 
 async function main() {

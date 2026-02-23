@@ -1,10 +1,11 @@
 # codex-gemini-mcp-sample
 
-가장 단순한 TypeScript MCP 서버 예제입니다.
+간결한 TypeScript MCP 서버 예제입니다.
 
 - MCP tool `ask_codex`: 로컬 `codex` CLI에 프롬프트 전달
 - MCP tool `ask_gemini`: 로컬 `gemini` CLI에 프롬프트 전달
 - stdio transport 기반으로 동작
+- 현재 Phase A 1차 구조 분리 완료 (`types`, `schema`, `run-cli` 모듈 분리)
 
 `MCP_REVERSE_ENGINEERING.md`는 참고용이며, 이 샘플은 의도적으로 기능을 최소화했습니다.
 
@@ -47,15 +48,27 @@ npm run dev
 
 - `prompt` (string, required)
 - `model` (string, optional)
-- `timeout_ms` (number, optional, max 600000)
+- `timeout_ms` (number, optional, default 600000, max 600000)
 - `working_directory` (string, optional)
 
 ### ask_gemini
 
 - `prompt` (string, required)
 - `model` (string, optional)
-- `timeout_ms` (number, optional, max 600000)
+- `timeout_ms` (number, optional, default 600000, max 600000)
 - `working_directory` (string, optional)
+
+## Runtime Notes
+
+- `ask_codex`: `codex exec --ephemeral` 호출
+- `ask_gemini`: `gemini --prompt <text>` 호출
+- `timeout_ms` 미지정 시 기본값은 600000ms(10분)
+
+## Current Status
+
+- MCP 등록 엔트리: `dist/index.js` (단일 서버)
+- 검증 완료: `ask_codex`, `ask_gemini` 도구 실호출 성공
+- 아직 미구현: provider 분리 서버(`codex-mcp`, `gemini-mcp`) 및 background job tools
 
 ## Scope (deliberately minimal)
 
