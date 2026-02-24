@@ -19,6 +19,10 @@ function makeSlug(prompt: string): string {
   return normalized.slice(0, 32);
 }
 
+function makeTimestampPart(): string {
+  return new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z");
+}
+
 async function ensureDirs(cwd?: string): Promise<void> {
   await mkdir(getPromptsDir(cwd), { recursive: true });
   await mkdir(getJobsDir(cwd), { recursive: true });
@@ -37,13 +41,14 @@ export async function createJobFiles(
 ): Promise<JobFiles> {
   await ensureDirs(cwd);
   const jobId = makeJobId();
+  const timestampPart = makeTimestampPart();
   const slug = makeSlug(prompt);
   const promptsDir = getPromptsDir(cwd);
   const jobsDir = getJobsDir(cwd);
   return {
     jobId,
-    contentFile: path.join(promptsDir, `${provider}-content-${slug}-${jobId}.json`),
-    statusFile: path.join(jobsDir, `${provider}-status-${slug}-${jobId}.json`),
+    contentFile: path.join(promptsDir, `${provider}-content-${timestampPart}-${slug}-${jobId}.json`),
+    statusFile: path.join(jobsDir, `${provider}-status-${timestampPart}-${slug}-${jobId}.json`),
   };
 }
 
