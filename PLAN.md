@@ -62,7 +62,7 @@ GitHub/npm 공개 배포를 production 수준으로 맞추기 위해 패키징 �
 
 ---
 
-### P0-4. README 배포 정합성 업데이트 `[PARTIAL]`
+### P0-4. README 배포 정합성 업데이트 `[DONE]`
 
 **수정: `README.md`**
 - 패키지명 `codex-gemini-mcp`로 정리

@@ -1,14 +1,14 @@
-# codex-gemini-mcp-sample
+# codex-gemini-mcp
 
-간결한 TypeScript MCP 서버 예제입니다.
+Codex/Gemini CLI를 MCP 프로토콜로 프록시하는 CLI-only TypeScript 서버입니다.
 
-- MCP tool `ask_codex`: 로컬 `codex` CLI에 프롬프트 전달
-- MCP tool `ask_gemini`: 로컬 `gemini` CLI에 프롬프트 전달
+- `codex-mcp`: MCP tool `ask_codex` + background tools 제공
+- `gemini-mcp`: MCP tool `ask_gemini` + background tools 제공
 - MCP background tools: `wait_for_job`, `check_job_status`, `kill_job`, `list_jobs`
 - stdio transport 기반으로 동작
-- 현재 Phase E 핵심 안정화 반영 (output cap + model validation 포함)
+- output cap + model validation 포함 (Phase E)
 
-`MCP_REVERSE_ENGINEERING.md`는 참고용이며, 이 샘플은 의도적으로 기능을 최소화했습니다.
+로드맵/배포 체크리스트는 `PLAN.md`를 참고하세요.
 
 ## Requirements
 
@@ -16,7 +16,32 @@
 - `codex` CLI 설치 (`npm i -g @openai/codex`)
 - `gemini` CLI 설치 (`npm i -g @google/gemini-cli`)
 
-## Quick Start
+MCP 서버는 각각의 CLI를 그대로 실행하므로, 먼저 로컬 터미널에서 로그인/인증이 완료되어 `codex` / `gemini` CLI를 바로 실행할 수 있는 상태인지 확인하세요.
+
+## Install
+
+npm에서 설치(배포된 경우):
+
+```bash
+npm i -g codex-gemini-mcp
+```
+
+전역 설치 없이 npx 사용:
+
+```bash
+npx -y -p codex-gemini-mcp codex-mcp
+npx -y -p codex-gemini-mcp gemini-mcp
+```
+
+소스에서 설치(개발/테스트):
+
+```bash
+npm install
+npm run build
+npm link
+```
+
+## Local development
 
 ```bash
 npm install
@@ -34,20 +59,70 @@ npm run dev:gemini
 
 ## Example `.mcp.json`
 
+전역 설치 기준:
+
 ```json
 {
   "mcpServers": {
     "codex-mcp": {
-      "command": "node",
-      "args": ["/absolute/path/to/codex-gemini-mcp/dist/mcp/codex-stdio-entry.js"]
+      "command": "codex-mcp",
+      "args": []
     },
     "gemini-mcp": {
-      "command": "node",
-      "args": ["/absolute/path/to/codex-gemini-mcp/dist/mcp/gemini-stdio-entry.js"]
+      "command": "gemini-mcp",
+      "args": []
     }
   }
 }
 ```
+
+전역 설치 없이 npx 기준:
+
+```json
+{
+  "mcpServers": {
+    "codex-mcp": {
+      "command": "npx",
+      "args": ["-y", "-p", "codex-gemini-mcp", "codex-mcp"]
+    },
+    "gemini-mcp": {
+      "command": "npx",
+      "args": ["-y", "-p", "codex-gemini-mcp", "gemini-mcp"]
+    }
+  }
+}
+```
+
+클라이언트별 설정 파일 위치(참고):
+
+- Claude Desktop (macOS): `~/Library/Application Support/Claude/claude_desktop_config.json`
+- Claude Desktop (Windows): `%APPDATA%\Claude\claude_desktop_config.json`
+
+환경 변수는 셸 프로필(`.zshrc` 등)에서 자동으로 주입되지 않을 수 있으므로, 가능하면 설정 파일의 `env` 블록으로 전달하세요.
+
+## Runtime Files
+
+- 기본 런타임 디렉토리: `<cwd>/.codex-gemini-mcp/`
+  - background job 상태: `jobs/`
+  - background job 입출력(content): `prompts/`
+  - 구조화 로깅(JSONL): `logs/`
+- 런타임 경로 override:
+  - `MCP_RUNTIME_DIR`: 런타임 루트 디렉토리
+  - `MCP_LOG_DIR`: 로그 디렉토리
+
+정리(기본 경로 사용 시):
+
+```bash
+rm -rf .codex-gemini-mcp
+```
+
+## Security / Privacy Notes
+
+- `background: true`(기본값) 요청은 `.codex-gemini-mcp/prompts/*content*.json`에 prompt/response를 저장합니다.
+- 프롬프트에 시크릿(토큰, 비밀번호, 개인 정보 등)을 넣으면 로컬 파일에 남을 수 있습니다.
+- 로깅은 기본적으로 본문 미저장이지만, 아래 플래그를 켜면 로그에 텍스트가 포함될 수 있습니다:
+  - `MCP_LOG_PREVIEW=1`
+  - `MCP_LOG_FULL_TEXT=1`
 
 ## Tool Schemas
 
@@ -59,7 +134,7 @@ npm run dev:gemini
   - `300000` 미만이면 에러 반환 + 재시도 가이드 제공
   - long-running task는 `1800000`(30분) 권장
 - `model`은 `[A-Za-z0-9][A-Za-z0-9._:-]*` 패턴(최대 128자)만 허용
-- `working_directory` (string, optional)
+- `working_directory` (string, optional): CLI 프로세스의 실행 디렉토리(cwd)
 - `background` (boolean, optional, default `true`)
 - `reasoning_effort` (string, optional: `minimal` | `low` | `medium` | `high` | `xhigh`)
 
@@ -71,13 +146,13 @@ npm run dev:gemini
   - `300000` 미만이면 에러 반환 + 재시도 가이드 제공
   - long-running task는 `1800000`(30분) 권장
 - `model`은 `[A-Za-z0-9][A-Za-z0-9._:-]*` 패턴(최대 128자)만 허용
-- `working_directory` (string, optional)
+- `working_directory` (string, optional): CLI 프로세스의 실행 디렉토리(cwd)
 - `background` (boolean, optional, default `true`)
 
 ### wait_for_job
 
 - `job_id` (string, required, 8자리 hex)
-- `timeout_ms` (number, optional, default 3600000, max 3600000)
+- `timeout_ms` (number, optional, default 3600000, max 3600000; 3600000 초과 값은 3600000으로 cap)
 
 ### check_job_status
 
@@ -90,7 +165,7 @@ npm run dev:gemini
 
 ### list_jobs
 
-- `status_filter` (string, optional: `active` | `completed` | `failed` | `all`, default `active`)
+- `status_filter` (string, optional: `active`(spawned/running) | `completed` | `failed`(failed/timeout) | `all`, default `active`)
 - `limit` (number, optional, default `50`)
 
 ## Runtime Notes
@@ -110,6 +185,7 @@ npm run dev:gemini
 - `timeout_ms` 미지정 시 기본값은 `MCP_CLI_TIMEOUT_MS` 또는 600000ms(10분)
 - `timeout_ms < 300000` 요청은 거부되며, 재시도 가이드가 반환됨
 - `stdout + stderr` 합산 출력이 `MCP_MAX_OUTPUT_BYTES`를 넘으면 `CLI_OUTPUT_LIMIT_EXCEEDED`로 종료
+- 출력은 안정적인 텍스트 파이프를 위해 색상/TTY를 비활성화하여 실행합니다 (`NO_COLOR=1`, `FORCE_COLOR=0`, `TERM=dumb`)
 
 ## Logging by `background`
 
@@ -134,7 +210,7 @@ npm run dev:gemini
 
 ## Current Status
 
-- MCP 등록 엔트리: `dist/mcp/codex-stdio-entry.js`, `dist/mcp/gemini-stdio-entry.js`
+- 바이너리 엔트리: `codex-mcp`, `gemini-mcp`
 - 검증 완료: `ask_codex`, `ask_gemini` foreground/background 실호출 성공
 - 검증 완료: `wait_for_job`, `check_job_status`, `kill_job`, `list_jobs` 실호출 성공
 - 구현 완료: 구조화 로깅(Phase D)
@@ -146,3 +222,13 @@ npm run dev:gemini
 
 - 모델 fallback chain
 - standalone bridge 번들링
+
+## Troubleshooting
+
+- `CLI_NOT_FOUND`:
+  - `codex` 또는 `gemini` CLI가 PATH에 없을 때 발생합니다.
+  - `npm i -g @openai/codex` / `npm i -g @google/gemini-cli` 설치 후 재시도하세요.
+- output이 잘림(`CLI_OUTPUT_LIMIT_EXCEEDED`):
+  - `MCP_MAX_OUTPUT_BYTES`를 늘리거나, 프롬프트/출력을 줄이세요.
+- background 파일이 너무 쌓임:
+  - 필요 시 `.codex-gemini-mcp/`를 직접 정리하세요.
