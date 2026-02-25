@@ -7,7 +7,9 @@ import {
 } from "./prompt-store.js";
 import type { JobListStatusFilter, JobState, JobStatus, Provider } from "./types.js";
 
-const WAIT_POLL_MS = 250;
+const INITIAL_POLL_MS = 250;
+const MAX_POLL_MS = 5000;
+const BACKOFF_FACTOR = 1.5;
 const DEFAULT_WAIT_TIMEOUT_MS = 3600000;
 const DEFAULT_LIST_LIMIT = 50;
 
@@ -52,6 +54,8 @@ export async function waitForJob(params: {
   const timeoutMs = Math.min(params.timeoutMs ?? DEFAULT_WAIT_TIMEOUT_MS, DEFAULT_WAIT_TIMEOUT_MS);
   const deadline = Date.now() + timeoutMs;
 
+  let pollMs = INITIAL_POLL_MS;
+
   while (Date.now() <= deadline) {
     const status = await checkJobStatus(params.provider, params.jobId, params.cwd);
     if (isTerminal(status.status)) {
@@ -65,7 +69,14 @@ export async function waitForJob(params: {
       }
       return { status };
     }
-    await delay(WAIT_POLL_MS);
+
+    const remainingMs = deadline - Date.now();
+    if (remainingMs <= 0) {
+      break;
+    }
+
+    await delay(Math.min(pollMs, remainingMs));
+    pollMs = Math.min(MAX_POLL_MS, Math.ceil(pollMs * BACKOFF_FACTOR));
   }
 
   throw new Error(`wait_for_job timed out after ${timeoutMs}ms`);

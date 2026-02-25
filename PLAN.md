@@ -102,7 +102,7 @@ GitHub/npm 공개 배포를 production 수준으로 맞추기 위해 패키징 �
 
 ---
 
-### P1-1. wait_for_job 폴링 backoff 도입 `[TODO]`
+### P1-1. wait_for_job 폴링 backoff 도입 `[DONE]`
 
 **수정: `src/job-management.ts`**
 - `WAIT_POLL_MS = 250` ->
