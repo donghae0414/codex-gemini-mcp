@@ -130,9 +130,6 @@ rm -rf .codex-gemini-mcp
 
 - `prompt` (string, required)
 - `model` (string, optional)
-- `timeout_ms` (number, optional, default 600000)
-  - `300000` 미만이면 에러 반환 + 재시도 가이드 제공
-  - long-running task는 `1800000`(30분) 권장
 - `model`은 `[A-Za-z0-9][A-Za-z0-9._:-]*` 패턴(최대 128자)만 허용
 - `working_directory` (string, optional): CLI 프로세스의 실행 디렉토리(cwd)
 - `background` (boolean, optional, default `true`)
@@ -142,9 +139,6 @@ rm -rf .codex-gemini-mcp
 
 - `prompt` (string, required)
 - `model` (string, optional)
-- `timeout_ms` (number, optional, default 600000)
-  - `300000` 미만이면 에러 반환 + 재시도 가이드 제공
-  - long-running task는 `1800000`(30분) 권장
 - `model`은 `[A-Za-z0-9][A-Za-z0-9._:-]*` 패턴(최대 128자)만 허용
 - `working_directory` (string, optional): CLI 프로세스의 실행 디렉토리(cwd)
 - `background` (boolean, optional, default `true`)
@@ -182,8 +176,7 @@ rm -rf .codex-gemini-mcp
 - 모델 선택 우선순위: `request.model > env default > hardcoded default`
   - codex env: `MCP_CODEX_DEFAULT_MODEL` (기본값: `gpt-5.3-codex`)
   - gemini env: `MCP_GEMINI_DEFAULT_MODEL` (기본값: `gemini-3-pro-preview`)
-- `timeout_ms` 미지정 시 기본값은 `MCP_CLI_TIMEOUT_MS` 또는 600000ms(10분)
-- `timeout_ms < 300000` 요청은 거부되며, 재시도 가이드가 반환됨
+- CLI timeout 기본값은 `MCP_CLI_TIMEOUT_MS` 또는 3600000ms(60분)
 - `stdout + stderr` 합산 출력이 `MCP_MAX_OUTPUT_BYTES`를 넘으면 `CLI_OUTPUT_LIMIT_EXCEEDED`로 종료
 - 출력은 안정적인 텍스트 파이프를 위해 색상/TTY를 비활성화하여 실행합니다 (`NO_COLOR=1`, `FORCE_COLOR=0`, `TERM=dumb`)
 

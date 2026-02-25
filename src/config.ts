@@ -7,7 +7,9 @@ const HARDCODED_DEFAULTS: Record<Provider, string> = {
   gemini: "gemini-3-pro-preview",
 };
 
-const DEFAULT_TIMEOUT_MS = 600000;
+const DEFAULT_TIMEOUT_MS = 3600000;
+const MIN_CLI_TIMEOUT_MS = 300000;
+const MAX_CLI_TIMEOUT_MS = 3600000;
 const DEFAULT_MAX_OUTPUT_BYTES = 1048576;
 
 function readEnvNumber(name: string): number | undefined {
@@ -51,7 +53,9 @@ export function resolveModel(provider: Provider, requestedModel?: string): strin
 }
 
 export function getDefaultTimeoutMs(): number {
-  return readEnvNumber("MCP_CLI_TIMEOUT_MS") ?? DEFAULT_TIMEOUT_MS;
+  const configured = readEnvNumber("MCP_CLI_TIMEOUT_MS");
+  const raw = configured ?? DEFAULT_TIMEOUT_MS;
+  return Math.min(MAX_CLI_TIMEOUT_MS, Math.max(MIN_CLI_TIMEOUT_MS, raw));
 }
 
 export function getMaxOutputBytes(): number {

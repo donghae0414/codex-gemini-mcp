@@ -7,21 +7,8 @@ import { runCli } from "../runtime/run-cli.js";
 import { runCliBackground } from "../runtime/run-cli-background.js";
 import type { AskGeminiInput, RuntimeLogContext } from "../types.js";
 
-const MIN_TIMEOUT_MS = 300000;
-
-function ensureTimeoutMs(timeoutMs: number): void {
-  if (timeoutMs >= MIN_TIMEOUT_MS) {
-    return;
-  }
-
-  throw new Error(
-    `timeout_ms must be >= ${MIN_TIMEOUT_MS}. Retry with timeout_ms: ${MIN_TIMEOUT_MS} (recommended: 1800000) and background: true for long-running tasks.`,
-  );
-}
-
 export async function handleAskGemini(input: AskGeminiInput): Promise<string> {
-  const timeoutMs = input.timeout_ms ?? getDefaultTimeoutMs();
-  ensureTimeoutMs(timeoutMs);
+  const timeoutMs = getDefaultTimeoutMs();
   const command = buildGeminiCommand(input);
   const logContext: RuntimeLogContext = {
     requestId: randomUUID(),

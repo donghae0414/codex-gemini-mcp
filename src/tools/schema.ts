@@ -9,12 +9,6 @@ const BaseAskSchema = z.object({
     .max(128)
     .regex(/^[A-Za-z0-9][A-Za-z0-9._:-]*$/)
     .optional(),
-  timeout_ms: z
-    .number()
-    .int()
-    .positive()
-    .optional()
-    .describe("CLI timeout in milliseconds (default 600000; must be >=300000; 1800000 recommended for long-running tasks)"),
   working_directory: z.string().min(1).optional(),
   background: z
     .boolean()

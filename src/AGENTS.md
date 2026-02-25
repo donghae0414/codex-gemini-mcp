@@ -21,7 +21,7 @@
 - Return plain text content for successful calls.
 - Return `isError: true` for validation or CLI errors.
 - Use `server.registerTool(...)` (avoid deprecated `server.tool(...)`).
-- Default timeout is 600000ms when `timeout_ms` is omitted.
+- Default CLI timeout is 3600000ms (overridable via `MCP_CLI_TIMEOUT_MS`).
 - Background jobs write status under `.codex-gemini-mcp/jobs` and prompts/responses under `.codex-gemini-mcp/prompts`.
 
 ## ANTI-PATTERNS

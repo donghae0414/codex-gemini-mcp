@@ -26,7 +26,7 @@ export function askCodex(input: AskCodexInput): Promise<string> {
   return runCli(
     command.command,
     command.args,
-    input.timeout_ms,
+    undefined,
     input.working_directory,
   );
 }

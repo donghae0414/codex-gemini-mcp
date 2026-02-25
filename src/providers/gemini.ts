@@ -22,7 +22,7 @@ export function askGemini(input: AskGeminiInput): Promise<string> {
   return runCli(
     command.command,
     command.args,
-    input.timeout_ms,
+    undefined,
     input.working_directory,
   );
 }

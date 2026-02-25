@@ -3,7 +3,6 @@ export type Provider = "codex" | "gemini";
 export interface BaseAskInput {
   prompt: string;
   model?: string;
-  timeout_ms?: number;
   working_directory?: string;
   background?: boolean;
 }
