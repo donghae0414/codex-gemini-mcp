@@ -5,6 +5,7 @@ import {
   listJobs,
   waitForJob,
 } from "../job-management.js";
+import { VERSION } from "../version.js";
 import { handleAskCodex } from "../tools/codex-handlers.js";
 import {
   AskCodexSchema,
@@ -17,7 +18,7 @@ import {
 export function createCodexServer(): McpServer {
   const server = new McpServer({
     name: "codex-mcp",
-    version: "0.1.0",
+    version: VERSION,
   });
 
   server.registerTool(

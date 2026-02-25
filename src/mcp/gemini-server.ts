@@ -5,6 +5,7 @@ import {
   listJobs,
   waitForJob,
 } from "../job-management.js";
+import { VERSION } from "../version.js";
 import { handleAskGemini } from "../tools/gemini-handlers.js";
 import {
   AskGeminiSchema,
@@ -17,7 +18,7 @@ import {
 export function createGeminiServer(): McpServer {
   const server = new McpServer({
     name: "gemini-mcp",
-    version: "0.1.0",
+    version: VERSION,
   });
 
   server.registerTool(
