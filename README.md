@@ -1,14 +1,18 @@
+**🌐 Language: 한국어 | [English](README.en.md)**
+
 # codex-gemini-mcp
 
-Codex/Gemini CLI를 MCP 프로토콜로 프록시하는 CLI-only TypeScript 서버입니다.
+AI 에이전트(Claude, Cursor 등)가 **OpenAI Codex CLI**와 **Google Gemini CLI**를 MCP 도구로 직접 호출할 수 있게 해주는 프록시 서버입니다.
 
-- `codex-mcp`: MCP tool `ask_codex` + background tools 제공
-- `gemini-mcp`: MCP tool `ask_gemini` + background tools 제공
-- MCP background tools: `wait_for_job`, `check_job_status`, `kill_job`, `list_jobs`
-- stdio transport 기반으로 동작
-- output cap + model validation 포함 (Phase E)
+## 주요 기능
 
-로드맵/배포 체크리스트는 `PLAN.md`를 참고하세요.
+- **`ask_codex`** — 에이전트가 Codex에게 코드 생성·리팩터링·디버깅을 요청
+- **`ask_gemini`** — 에이전트가 Gemini에게 분석·요약·코드 리뷰를 요청
+- **백그라운드 실행** — 오래 걸리는 작업을 백그라운드로 돌리고, 상태 확인(`check_job_status`)·대기(`wait_for_job`)·중단(`kill_job`)·목록 조회(`list_jobs`)로 관리
+- **멀티모델 오케스트레이션** — 하나의 에이전트가 Codex와 Gemini를 동시에 활용하여 작업 분담 가능
+
+하나의 패키지에서 `codex-mcp`와 `gemini-mcp` 두 개의 MCP 서버 바이너리를 제공하며, stdio transport 기반으로 동작합니다.
+
 
 ## Requirements
 
@@ -39,22 +43,6 @@ npx -y -p codex-gemini-mcp gemini-mcp
 npm install
 npm run build
 npm link
-```
-
-## Local development
-
-```bash
-npm install
-npm run build
-npm run start:codex
-npm run start:gemini
-```
-
-개발 모드:
-
-```bash
-npm run dev:codex
-npm run dev:gemini
 ```
 
 ## Example `.mcp.json`
@@ -99,6 +87,33 @@ npm run dev:gemini
 - Claude Desktop (Windows): `%APPDATA%\Claude\claude_desktop_config.json`
 
 환경 변수는 셸 프로필(`.zshrc` 등)에서 자동으로 주입되지 않을 수 있으므로, 가능하면 설정 파일의 `env` 블록으로 전달하세요.
+
+## Default Models
+
+기본 모델은 `src/config.ts`에 하드코딩되어 있으며, 환경 변수로 override할 수 있습니다.
+
+| Provider | 기본 모델 | 환경 변수 override |
+|----------|-----------|-------------------|
+| codex | `gpt-5.3-codex` | `MCP_CODEX_DEFAULT_MODEL` |
+| gemini | `gemini-3-pro-preview` | `MCP_GEMINI_DEFAULT_MODEL` |
+
+모델 선택 우선순위: **요청 파라미터 `model`** > **환경 변수** > **하드코딩 기본값**
+
+## Local development
+
+```bash
+npm install
+npm run build
+npm run start:codex
+npm run start:gemini
+```
+
+개발 모드:
+
+```bash
+npm run dev:codex
+npm run dev:gemini
+```
 
 ## Runtime Files
 
