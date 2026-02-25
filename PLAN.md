@@ -17,7 +17,8 @@ GitHub/npm 공개 배포를 production 수준으로 맞추기 위해 패키징 �
 - 구현 완료: foreground/background 실행, job 관리(`wait_for_job`, `check_job_status`, `kill_job`, `list_jobs`)
 - 구현 완료: output cap 강제, model validation
 - 구현 완료: 구조화 로깅(JSONL)
-- 미구현: production 배포 계약 정리(`bin/files/repository/...`), shebang, 단일 버전 소스, 상태 파일 parse 검증 강화, CI 품질 게이트
+- 미구현: 단일 버전 소스, 상태 파일 parse 검증 강화, CI 품질 게이트
+- 완료: production 배포 계약 정리(`bin/files/repository/...`), shebang, LICENSE
 
 ## 구현 범위 (우선순위 순)
 
@@ -25,12 +26,12 @@ GitHub/npm 공개 배포를 production 수준으로 맞추기 위해 패키징 �
 
 ---
 
-### P0-1. LICENSE 파일 생성 `[TODO]`
+### P0-1. LICENSE 파일 생성 `[DONE]`
 - **신규:** `LICENSE` (MIT, `package.json`의 `license`와 일치)
 
 ---
 
-### P0-2. npm 패키지 계약 정리 (`main`/`exports`/`bin`) `[TODO]`
+### P0-2. npm 패키지 계약 정리 (`main`/`exports`/`bin`) `[DONE]`
 
 **수정: `package.json`**
 - `name`: `"codex-gemini-mcp-sample"` -> `"codex-gemini-mcp"`
@@ -41,6 +42,9 @@ GitHub/npm 공개 배포를 production 수준으로 맞추기 위해 패키징 �
 - `repository`, `bugs`, `homepage` 추가
 - `prepublishOnly` 추가: `"npm run typecheck && npm run build"`
 
+추가(안전장치):
+- `dist/`에 stale artifact가 섞이지 않도록 `clean` 스크립트 추가 + `build`에서 clean 선행
+
 **중요 정책 (확정):**
 - 이 패키지는 **CLI-only**로 배포한다.
 - `main`은 제거한다 (stdio entry를 module 계약으로 노출하지 않음).
@@ -50,7 +54,7 @@ GitHub/npm 공개 배포를 production 수준으로 맞추기 위해 패키징 �
 
 ---
 
-### P0-3. Entry 파일 shebang 추가 `[TODO]`
+### P0-3. Entry 파일 shebang 추가 `[DONE]`
 
 **수정: `src/mcp/codex-stdio-entry.ts`, `src/mcp/gemini-stdio-entry.ts`**
 - 첫 줄 shebang 추가: `#!/usr/bin/env node`
@@ -127,9 +131,9 @@ GitHub/npm 공개 배포를 production 수준으로 맞추기 위해 패키징 �
 ## 구현 순서
 
 ```
-1. LICENSE 생성
-2. package.json 패키지 계약 정리 (name/bin/files/repository/bugs/homepage/prepublishOnly + main/exports 정책 확정)
-3. stdio entry shebang 추가
+1. LICENSE 생성 (DONE)
+2. package.json 패키지 계약 정리 (name/bin/files/repository/bugs/homepage/prepublishOnly + main/exports 정책 확정) (DONE)
+3. stdio entry shebang 추가 (DONE)
 4. README를 배포 계약에 맞춰 갱신 (`MCP_REVERSE_ENGINEERING.md` 참조 문구 정합화 + 런타임 파일 정리 안내 추가)
 5. src/version.ts 추가 후 server 버전 하드코딩 제거
 6. src/job-schema.ts 추가 + prompt-store 파싱 검증 전환

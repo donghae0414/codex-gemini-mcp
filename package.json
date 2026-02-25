@@ -1,18 +1,36 @@
 {
-  "name": "codex-gemini-mcp-sample",
+  "name": "codex-gemini-mcp",
   "version": "0.1.0",
   "description": "Minimal TypeScript MCP server that proxies prompts to Codex and Gemini CLI",
   "type": "module",
-  "main": "dist/mcp/codex-stdio-entry.js",
+  "bin": {
+    "codex-mcp": "dist/mcp/codex-stdio-entry.js",
+    "gemini-mcp": "dist/mcp/gemini-stdio-entry.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/donghae0414/codex-gemini-mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/donghae0414/codex-gemini-mcp/issues"
+  },
+  "homepage": "https://github.com/donghae0414/codex-gemini-mcp#readme",
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "clean": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\"",
+    "build": "npm run clean && tsc -p tsconfig.json",
     "start": "node dist/mcp/codex-stdio-entry.js",
     "start:codex": "node dist/mcp/codex-stdio-entry.js",
     "start:gemini": "node dist/mcp/gemini-stdio-entry.js",
     "dev": "tsx src/mcp/codex-stdio-entry.ts",
     "dev:codex": "tsx src/mcp/codex-stdio-entry.ts",
     "dev:gemini": "tsx src/mcp/gemini-stdio-entry.ts",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "prepublishOnly": "npm run typecheck && npm run build"
   },
   "keywords": [
     "mcp",
