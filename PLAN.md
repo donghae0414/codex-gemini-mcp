@@ -73,10 +73,13 @@ GitHub/npm 공개 배포를 production 수준으로 맞추기 위해 패키징 �
 
 ---
 
-### P0-5. 버전 단일 소스화 `[TODO]`
+### P0-5. 버전 단일 소스화 `[DONE]`
 
 **신규: `src/version.ts`**
 - `package.json` 버전을 읽는 단일 소스 제공
+- 구현 방식(권장): ESM 환경에서 `createRequire(import.meta.url)`로 `../package.json`을 로드하여 `VERSION`을 export
+  - dev(`tsx src/...`) / prod(`node dist/...`) 모두에서 `../package.json` 상대 경로가 동일하게 성립
+  - TS 설정 변경(`resolveJsonModule`, JSON import assertion) 없이 동작
 
 **수정: `src/mcp/codex-server.ts`, `src/mcp/gemini-server.ts`**
 - 하드코딩된 `"0.1.0"`을 `VERSION` import로 교체
