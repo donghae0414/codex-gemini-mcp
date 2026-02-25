@@ -24,7 +24,8 @@ export function createGeminiServer(): McpServer {
   server.registerTool(
     "ask_gemini",
     {
-      description: "Send a prompt to local Gemini CLI and return its output.",
+      description:
+        "Send a prompt to local Gemini CLI for design and implementation tasks. Supports foreground or background execution; background mode returns job metadata and persists prompt/response artifacts under the runtime directory.",
       inputSchema: AskGeminiSchema.shape,
     },
     async (input) => {
@@ -41,7 +42,8 @@ export function createGeminiServer(): McpServer {
   server.registerTool(
     "wait_for_job",
     {
-      description: "Block until a background job reaches terminal state.",
+      description:
+        "Block (poll) until a background job reaches terminal state (completed/failed/timeout). Returns response text on success or terminal status payload on error.",
       inputSchema: WaitForJobSchema.shape,
     },
     async (input) => {
@@ -70,7 +72,8 @@ export function createGeminiServer(): McpServer {
   server.registerTool(
     "check_job_status",
     {
-      description: "Get current metadata/status of a background job.",
+      description:
+        "Get current metadata and status for a background job without blocking. Use this for non-blocking progress checks.",
       inputSchema: CheckJobStatusSchema.shape,
     },
     async (input) => {
@@ -87,7 +90,8 @@ export function createGeminiServer(): McpServer {
   server.registerTool(
     "kill_job",
     {
-      description: "Send a signal to a running background job.",
+      description:
+        "Send a process signal to a running background job (SIGTERM by default). Stops active jobs and records terminal state.",
       inputSchema: KillJobSchema.shape,
     },
     async (input) => {
@@ -108,7 +112,8 @@ export function createGeminiServer(): McpServer {
   server.registerTool(
     "list_jobs",
     {
-      description: "List background jobs filtered by status.",
+      description:
+        "List persisted background jobs with optional status filtering and result limit. Jobs are returned in descending recency order.",
       inputSchema: ListJobsSchema.shape,
     },
     async (input) => {
