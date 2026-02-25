@@ -1,5 +1,5 @@
 {
-  "name": "codex-gemini-mcp",
+  "name": "@donghae0414/codex-gemini-mcp",
   "version": "0.1.0",
   "description": "Minimal TypeScript MCP server that proxies prompts to Codex and Gemini CLI",
   "type": "module",

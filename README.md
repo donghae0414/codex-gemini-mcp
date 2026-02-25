@@ -27,14 +27,14 @@ MCP 서버는 각각의 CLI를 그대로 실행하므로, 먼저 로컬 터미�
 npm에서 설치(배포된 경우):
 
 ```bash
-npm i -g codex-gemini-mcp
+npm i -g @donghae0414/codex-gemini-mcp
 ```
 
 전역 설치 없이 npx 사용:
 
 ```bash
-npx -y -p codex-gemini-mcp codex-mcp
-npx -y -p codex-gemini-mcp gemini-mcp
+npx -y -p @donghae0414/codex-gemini-mcp codex-mcp
+npx -y -p @donghae0414/codex-gemini-mcp gemini-mcp
 ```
 
 소스에서 설치(개발/테스트):
@@ -71,11 +71,11 @@ npm link
   "mcpServers": {
     "codex-mcp": {
       "command": "npx",
-      "args": ["-y", "-p", "codex-gemini-mcp", "codex-mcp"]
+      "args": ["-y", "-p", "@donghae0414/codex-gemini-mcp", "codex-mcp"]
     },
     "gemini-mcp": {
       "command": "npx",
-      "args": ["-y", "-p", "codex-gemini-mcp", "gemini-mcp"]
+      "args": ["-y", "-p", "@donghae0414/codex-gemini-mcp", "gemini-mcp"]
     }
   }
 }

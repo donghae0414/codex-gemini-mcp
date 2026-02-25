@@ -26,14 +26,14 @@ The MCP servers invoke each CLI directly, so make sure you have completed login/
 Install from npm (if published):
 
 ```bash
-npm i -g codex-gemini-mcp
+npm i -g @donghae0414/codex-gemini-mcp
 ```
 
 Without global install, using npx:
 
 ```bash
-npx -y -p codex-gemini-mcp codex-mcp
-npx -y -p codex-gemini-mcp gemini-mcp
+npx -y -p @donghae0414/codex-gemini-mcp codex-mcp
+npx -y -p @donghae0414/codex-gemini-mcp gemini-mcp
 ```
 
 Install from source (development/testing):
@@ -70,11 +70,11 @@ Without global install (npx):
   "mcpServers": {
     "codex-mcp": {
       "command": "npx",
-      "args": ["-y", "-p", "codex-gemini-mcp", "codex-mcp"]
+      "args": ["-y", "-p", "@donghae0414/codex-gemini-mcp", "codex-mcp"]
     },
     "gemini-mcp": {
       "command": "npx",
-      "args": ["-y", "-p", "codex-gemini-mcp", "gemini-mcp"]
+      "args": ["-y", "-p", "@donghae0414/codex-gemini-mcp", "gemini-mcp"]
     }
   }
 }
