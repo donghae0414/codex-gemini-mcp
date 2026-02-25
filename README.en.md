@@ -237,3 +237,11 @@ This project intentionally does not include:
   - Increase `MCP_MAX_OUTPUT_BYTES`, or reduce prompt/output size.
 - Background files accumulating:
   - Manually clean up `.codex-gemini-mcp/` as needed.
+
+## Acknowledgements
+
+This project is a reimplementation of the Codex/Gemini MCP servers originally built in [oh-my-claudecode](https://github.com/Yeachan-Heo/oh-my-claudecode).
+
+## License
+
+[MIT](LICENSE)

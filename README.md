@@ -240,3 +240,11 @@ rm -rf .codex-gemini-mcp
   - `MCP_MAX_OUTPUT_BYTES`를 늘리거나, 프롬프트/출력을 줄이세요.
 - background 파일이 너무 쌓임:
   - 필요 시 `.codex-gemini-mcp/`를 직접 정리하세요.
+
+## Acknowledgements
+
+이 프로젝트는 [oh-my-claudecode](https://github.com/Yeachan-Heo/oh-my-claudecode)에 구현된 Codex/Gemini MCP 서버를 참고하여 재구현한 것입니다.
+
+## License
+
+[MIT](LICENSE)
