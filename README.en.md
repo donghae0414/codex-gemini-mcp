@@ -44,7 +44,7 @@ npm run build
 npm link
 ```
 
-## Example `.mcp.json`
+## MCP Configuration Examples by Client
 
 Global install:
 
@@ -80,10 +80,30 @@ Without global install (npx):
 }
 ```
 
+opencode (`opencode.json`):
+
+```json
+{
+  "mcp": {
+    "codex-mcp": {
+      "type": "local",
+      "command": ["npx", "-y", "-p", "@donghae0414/codex-gemini-mcp", "codex-mcp"]
+    },
+    "gemini-mcp": {
+      "type": "local",
+      "command": ["npx", "-y", "-p", "@donghae0414/codex-gemini-mcp", "gemini-mcp"]
+    }
+  }
+}
+```
+
 Client config file locations (reference):
 
+- Claude Code: `.mcp.json` in project root (per-project) or `~/.claude.json` (global)
 - Claude Desktop (macOS): `~/Library/Application Support/Claude/claude_desktop_config.json`
 - Claude Desktop (Windows): `%APPDATA%\Claude\claude_desktop_config.json`
+- Claude Desktop (Linux): `~/.config/Claude/claude_desktop_config.json`
+- opencode: `~/.config/opencode/opencode.json`
 
 Environment variables may not be automatically injected from your shell profile (`.zshrc`, etc.). When possible, pass them via the `env` block in your config file.
 

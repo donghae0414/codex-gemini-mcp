@@ -45,7 +45,7 @@ npm run build
 npm link
 ```
 
-## Example `.mcp.json`
+## 클라이언트별 MCP 설정 예시
 
 전역 설치 기준:
 
@@ -81,10 +81,30 @@ npm link
 }
 ```
 
+opencode (`opencode.json`):
+
+```json
+{
+  "mcp": {
+    "codex-mcp": {
+      "type": "local",
+      "command": ["npx", "-y", "-p", "@donghae0414/codex-gemini-mcp", "codex-mcp"]
+    },
+    "gemini-mcp": {
+      "type": "local",
+      "command": ["npx", "-y", "-p", "@donghae0414/codex-gemini-mcp", "gemini-mcp"]
+    }
+  }
+}
+```
+
 클라이언트별 설정 파일 위치(참고):
 
+- Claude Code: 프로젝트 루트 `.mcp.json` (프로젝트별) 또는 `~/.claude.json` (전역)
 - Claude Desktop (macOS): `~/Library/Application Support/Claude/claude_desktop_config.json`
 - Claude Desktop (Windows): `%APPDATA%\Claude\claude_desktop_config.json`
+- Claude Desktop (Linux): `~/.config/Claude/claude_desktop_config.json`
+- opencode: `~/.config/opencode/opencode.json`
 
 환경 변수는 셸 프로필(`.zshrc` 등)에서 자동으로 주입되지 않을 수 있으므로, 가능하면 설정 파일의 `env` 블록으로 전달하세요.
 
